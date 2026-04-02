@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>ZBet Analyzer Prototype</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="./icons/zbet-logo.svg" alt="ZBet" class="brand-logo" />
+        <div>
+          <div class="brand-name">ZBet</div>
+          <div class="brand-tag">Match analyzer prototype</div>
+        </div>
+      </div>
+      <div class="topbar-note">Prototip separat, fara impact asupra app-ului live</div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel-control">
+        <div class="panel-kicker">Pasul 1</div>
+        <h1>Alege competitia si meciul</h1>
+        <p class="panel-copy">Directia noua: analiza meci cu meci, cu posibilitatea de a vedea rapid si toate meciurile din liga selectata.</p>
+
+        <label class="field">
+          <span class="field-label">Competitie</span>
+          <select id="leagueSelect"></select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Meci</span>
+          <select id="matchSelect"></select>
+        </label>
+
+        <div class="action-row">
+          <button id="analyzeMatchBtn" class="btn btn-primary">Analizeaza meciul</button>
+          <button id="analyzeLeagueBtn" class="btn btn-secondary">Analizeaza toate meciurile din liga</button>
+        </div>
+      </section>
+
+      <section class="panel panel-league">
+        <div class="panel-kicker">Preview competitie</div>
+        <div class="league-head">
+          <div>
+            <h2 id="leagueTitle">Liga selectata</h2>
+            <p id="leagueSubtitle" class="muted">Meciurile vor aparea aici dupa selectie.</p>
+          </div>
+          <div class="pill" id="leagueMatchCount">0 meciuri</div>
+        </div>
+        <div id="leagueMatches" class="league-list"></div>
+      </section>
+
+      <section class="panel panel-analysis">
+        <div class="panel-kicker">Match Analyzer</div>
+        <div id="matchHero" class="match-hero"></div>
+
+        <div class="recommendation-grid">
+          <article class="recommendation-card best-bet">
+            <div class="recommendation-kicker">Best bet</div>
+            <div id="bestBetBody"></div>
+          </article>
+          <article class="recommendation-card plan-b">
+            <div class="recommendation-kicker">Plan B</div>
+            <div id="planBBody"></div>
+          </article>
+        </div>
+
+        <div class="analysis-actions">
+          <button id="toggleMarketsBtn" class="btn btn-secondary">Afiseaza toate pietele</button>
+          <button id="toggleFormBtn" class="btn btn-secondary">Afiseaza forma si comparatia</button>
+        </div>
+
+        <section id="marketsPanel" class="detail-panel" hidden>
+          <div class="detail-head">
+            <h3>Toate pietele disponibile</h3>
+            <span class="muted">Probabilitate implicita din cota acolo unde avem pret live</span>
+          </div>
+          <div id="marketsGrid" class="markets-grid"></div>
+        </section>
+
+        <section id="formPanel" class="detail-panel" hidden>
+          <div class="detail-head">
+            <h3>Forma si comparatia echipelor</h3>
+            <span class="muted">Ascunsa implicit, ca sa nu incarce ecranul principal.</span>
+          </div>
+          <div id="formGrid" class="form-grid"></div>
+        </section>
+
+        <section class="detail-panel">
+          <div class="detail-head">
+            <h3>Justificare</h3>
+            <span class="muted">Recomandarea trebuie sa fie concluzia unei analize, nu doar un pont.</span>
+          </div>
+          <div id="reasonList" class="reason-list"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
