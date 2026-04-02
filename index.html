@@ -42,11 +42,11 @@
       </section>
 
       <section class="panel panel-league">
-        <div class="panel-kicker">Preview competitie</div>
+        <div class="panel-kicker">Meciurile competitiei</div>
         <div class="league-head">
           <div>
-            <h2 id="leagueTitle">Liga selectata</h2>
-            <p id="leagueSubtitle" class="muted">Meciurile vor aparea aici dupa selectie.</p>
+            <h2 id="leagueTitle">Nicio competitie selectata</h2>
+            <p id="leagueSubtitle" class="muted">Alege competitia ca sa vezi toate meciurile disponibile.</p>
           </div>
           <div class="pill" id="leagueMatchCount">0 meciuri</div>
         </div>
@@ -94,7 +94,10 @@
             <h3>Justificare</h3>
             <span class="muted">Recomandarea trebuie sa fie concluzia unei analize, nu doar un pont.</span>
           </div>
-          <div id="reasonList" class="reason-list"></div>
+          <div class="analysis-actions">
+            <button id="toggleReasonsBtn" class="btn btn-secondary">Afiseaza justificarea</button>
+          </div>
+          <div id="reasonList" class="reason-list" hidden></div>
         </section>
       </section>
     </main>

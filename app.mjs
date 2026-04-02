@@ -10,7 +10,8 @@ const state = {
   historyByFixtureId: {},
   selectedLeague: "",
   selectedFixtureId: "",
-  leagueMode: false
+  leagueMode: false,
+  analysisVisible: false
 };
 
 const el = (id) => document.getElementById(id);
@@ -62,17 +63,15 @@ function formatLeagueMatches() {
   const count = el("leagueMatchCount");
   const title = el("leagueTitle");
   if (!selected) {
-    title.textContent = "Liga selectata";
-    subtitle.textContent = "Meciurile vor aparea aici dupa selectie.";
+    title.textContent = "Nicio competitie selectata";
+    subtitle.textContent = "Alege competitia ca sa vezi toate meciurile disponibile.";
     count.textContent = "0 meciuri";
     list.innerHTML = "";
     return;
   }
 
   title.textContent = selected.label;
-  subtitle.textContent = state.leagueMode
-    ? "Vezi toate meciurile din liga, cu acces rapid la analiza."
-    : "Selecteaza un meci pentru analiza detaliata.";
+  subtitle.textContent = "Toate meciurile din competitia selectata.";
   count.textContent = `${selected.matches.length} meciuri`;
 
   list.innerHTML = selected.matches.map((match) => {
@@ -89,11 +88,30 @@ function formatLeagueMatches() {
     button.addEventListener("click", () => {
       state.selectedFixtureId = button.getAttribute("data-fixture-id");
       state.leagueMode = false;
+      state.analysisVisible = true;
       syncSelectors();
       formatLeagueMatches();
       renderAnalysis();
     });
   });
+}
+
+function renderAnalysisEmpty() {
+  el("matchHero").innerHTML = `
+    <div class="match-hero-title">Selecteaza un meci sau analizeaza toata competitia</div>
+    <div class="match-hero-meta">Prototipul nu afiseaza automat o analiza implicita. Alegerea iti apartine.</div>
+    <div class="match-hero-badges">
+      <span class="pill">1. Alege competitia</span>
+      <span class="pill">2. Alege meciul sau toate meciurile</span>
+    </div>
+  `;
+  el("bestBetBody").innerHTML = `<div class="pick-label">—</div><div class="pick-copy">Nu exista analiza activa pana nu selectezi explicit un meci.</div>`;
+  el("planBBody").innerHTML = `<div class="pick-label">—</div><div class="pick-copy">Plan B apare doar dupa ce pornesti analiza pentru un meci.</div>`;
+  el("marketsGrid").innerHTML = "";
+  el("formGrid").innerHTML = "";
+  el("reasonList").innerHTML = "";
+  el("reasonList").hidden = true;
+  el("toggleReasonsBtn").textContent = "Afiseaza justificarea";
 }
 
 function renderPick(container, pick, fallbackTitle) {
@@ -177,8 +195,15 @@ function renderHero(match) {
 }
 
 function renderAnalysis() {
+  if (!state.analysisVisible || !state.selectedFixtureId) {
+    renderAnalysisEmpty();
+    return;
+  }
   const match = findMatchByFixtureId(state.selectedFixtureId);
-  if (!match) return;
+  if (!match) {
+    renderAnalysisEmpty();
+    return;
+  }
   const pair = getRecommendedPair(match);
   renderHero(match);
   renderPick(el("bestBetBody"), pair.primary, "Best bet");
@@ -195,28 +220,37 @@ function syncSelectors() {
 
 function populateControls() {
   const leagues = groupMatchesByLeague(state.matches);
-  el("leagueSelect").innerHTML = leagues
-    .map((league) => `<option value="${league.id}">${league.label}</option>`)
+  el("leagueSelect").innerHTML = [
+    `<option value="">Alege competitia</option>`,
+    ...leagues.map((league) => `<option value="${league.id}">${league.label}</option>`)
+  ]
     .join("");
 
-  const selected = leagues.find((league) => league.id === state.selectedLeague) || leagues[0];
-  if (!selected) return;
-  state.selectedLeague = selected.id;
+  const selected = leagues.find((league) => league.id === state.selectedLeague);
+  if (!selected) {
+    el("matchSelect").innerHTML = `<option value="">Alege mai intai competitia</option>`;
+    el("matchSelect").value = "";
+    return;
+  }
 
-  el("matchSelect").innerHTML = selected.matches
-    .map((match) => `<option value="${String(match.fixtureId)}">${displayTeamName(match.home)} vs ${displayTeamName(match.away)}</option>`)
-    .join("");
+  el("matchSelect").innerHTML = [
+    `<option value="">Alege meciul</option>`,
+    ...selected.matches.map((match) => `<option value="${String(match.fixtureId)}">${displayTeamName(match.home)} vs ${displayTeamName(match.away)}</option>`)
+  ].join("");
 
   if (!selected.matches.some((match) => String(match.fixtureId) === String(state.selectedFixtureId))) {
-    const preferred = selected.matches.find((match) => displayTeamName(match.home) === "FC Botosani" && displayTeamName(match.away) === "FCSB");
-    state.selectedFixtureId = String((preferred || selected.matches[0])?.fixtureId || "");
+    state.selectedFixtureId = "";
   }
 
   syncSelectors();
+}
 
+function bindActions() {
   el("leagueSelect").addEventListener("change", () => {
     state.selectedLeague = el("leagueSelect").value;
+    state.selectedFixtureId = "";
     state.leagueMode = false;
+    state.analysisVisible = false;
     populateControls();
     formatLeagueMatches();
     renderAnalysis();
@@ -225,20 +259,23 @@ function populateControls() {
   el("matchSelect").addEventListener("change", () => {
     state.selectedFixtureId = el("matchSelect").value;
     state.leagueMode = false;
+    state.analysisVisible = Boolean(state.selectedFixtureId);
     formatLeagueMatches();
     renderAnalysis();
   });
-}
 
-function bindActions() {
   el("analyzeMatchBtn").addEventListener("click", () => {
+    if (!state.selectedFixtureId) return;
     state.leagueMode = false;
+    state.analysisVisible = true;
     formatLeagueMatches();
     renderAnalysis();
   });
 
   el("analyzeLeagueBtn").addEventListener("click", () => {
+    if (!state.selectedLeague) return;
     state.leagueMode = true;
+    state.analysisVisible = false;
     formatLeagueMatches();
     renderAnalysis();
   });
@@ -254,6 +291,12 @@ function bindActions() {
     panel.hidden = !panel.hidden;
     el("toggleFormBtn").textContent = panel.hidden ? "Afiseaza forma si comparatia" : "Ascunde forma si comparatia";
   });
+
+  el("toggleReasonsBtn").addEventListener("click", () => {
+    const panel = el("reasonList");
+    panel.hidden = !panel.hidden;
+    el("toggleReasonsBtn").textContent = panel.hidden ? "Afiseaza justificarea" : "Ascunde justificarea";
+  });
 }
 
 async function init() {
@@ -265,12 +308,9 @@ async function init() {
     away: displayTeamName(match.away)
   }));
   state.historyByFixtureId = historyPayload.byFixtureId || {};
-
-  const leagues = groupMatchesByLeague(state.matches);
-  const defaultLeague = leagues.find((league) => league.label === "Romania • Superliga") || leagues[0];
-  state.selectedLeague = defaultLeague?.id || "";
-  const preferred = defaultLeague?.matches.find((match) => match.home === "FC Botosani" && match.away === "FCSB");
-  state.selectedFixtureId = String((preferred || defaultLeague?.matches[0])?.fixtureId || "");
+  state.selectedLeague = "";
+  state.selectedFixtureId = "";
+  state.analysisVisible = false;
 
   populateControls();
   bindActions();
