@@ -16,8 +16,21 @@
           <div class="brand-tag">Match analyzer prototype</div>
         </div>
       </div>
-      <div class="topbar-note">Prototip separat, fara impact asupra app-ului live</div>
+      <div class="topbar-side">
+        <button id="searchToggleBtn" class="search-toggle" type="button" aria-label="Cauta meci sau echipa">
+          <span class="search-toggle-icon" aria-hidden="true"></span>
+        </button>
+        <div class="topbar-note">Prototip separat, fara impact asupra app-ului live</div>
+      </div>
     </header>
+
+    <section id="searchOverlay" class="search-overlay" hidden>
+      <label class="field search-overlay-field">
+        <span class="field-label">Cauta meci sau echipa</span>
+        <input id="searchInput" type="text" placeholder="Ex: FCSB" autocomplete="off" />
+      </label>
+      <div id="searchResults" class="search-results" hidden></div>
+    </section>
 
     <main class="layout">
       <section class="panel panel-control">
@@ -29,12 +42,6 @@
           <span class="field-label">Competitie</span>
           <select id="leagueSelect"></select>
         </label>
-
-        <label class="field">
-          <span class="field-label">Cauta meci sau echipa</span>
-          <input id="searchInput" type="text" placeholder="Ex: FCSB" autocomplete="off" />
-        </label>
-        <div id="searchResults" class="search-results" hidden></div>
 
         <label class="field">
           <span class="field-label">Meci</span>

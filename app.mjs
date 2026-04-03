@@ -105,6 +105,7 @@ function renderSearchResults() {
       state.analysisVisible = true;
       state.searchTerm = "";
       el("searchInput").value = "";
+      el("searchOverlay").hidden = true;
       populateControls();
       renderSearchResults();
       formatLeagueMatches();
@@ -365,6 +366,18 @@ function bindActions() {
   el("searchInput").addEventListener("input", () => {
     state.searchTerm = el("searchInput").value;
     renderSearchResults();
+  });
+
+  el("searchToggleBtn").addEventListener("click", () => {
+    const overlay = el("searchOverlay");
+    overlay.hidden = !overlay.hidden;
+    if (!overlay.hidden) {
+      el("searchInput").focus();
+    } else {
+      state.searchTerm = "";
+      el("searchInput").value = "";
+      renderSearchResults();
+    }
   });
 
   el("analyzeMatchBtn").addEventListener("click", () => {
