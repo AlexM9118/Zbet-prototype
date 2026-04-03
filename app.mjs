@@ -11,7 +11,8 @@ const state = {
   selectedLeague: "",
   selectedFixtureId: "",
   leagueMode: false,
-  analysisVisible: false
+  analysisVisible: false,
+  searchTerm: ""
 };
 
 const el = (id) => document.getElementById(id);
@@ -37,6 +38,81 @@ function groupMatchesByLeague(matches) {
   return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
 }
 
+function toDayStamp(day) {
+  const time = new Date(`${day}T12:00:00`).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function getCurrentRoundMatches(matches) {
+  if (!Array.isArray(matches) || !matches.length) return [];
+  const uniqueDays = [...new Set(matches.map((match) => String(match.day || "")).filter(Boolean))]
+    .sort((a, b) => toDayStamp(a) - toDayStamp(b));
+  if (!uniqueDays.length) return matches;
+
+  const roundDays = [uniqueDays[0]];
+  for (let index = 1; index < uniqueDays.length; index += 1) {
+    const prev = toDayStamp(uniqueDays[index - 1]);
+    const current = toDayStamp(uniqueDays[index]);
+    const gapDays = Math.round((current - prev) / 86400000);
+    if (gapDays > 2) break;
+    roundDays.push(uniqueDays[index]);
+  }
+
+  const roundSet = new Set(roundDays);
+  return matches.filter((match) => roundSet.has(String(match.day || "")));
+}
+
+function renderSearchResults() {
+  const panel = el("searchResults");
+  const term = String(state.searchTerm || "").trim().toLowerCase();
+  if (!term) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+
+  const baseMatches = state.selectedLeague
+    ? (groupMatchesByLeague(state.matches).find((league) => league.id === state.selectedLeague)?.matches || [])
+    : state.matches;
+
+  const results = baseMatches
+    .filter((match) => {
+      const hay = `${displayTeamName(match.home)} ${displayTeamName(match.away)} ${match.categoryName} ${match.tournamentName}`.toLowerCase();
+      return hay.includes(term);
+    })
+    .sort((a, b) => String(a.startTime || "").localeCompare(String(b.startTime || "")))
+    .slice(0, 8);
+
+  if (!results.length) {
+    panel.hidden = false;
+    panel.innerHTML = `<div class="reason-item">Nu exista meciuri disponibile pentru cautarea ta.</div>`;
+    return;
+  }
+
+  panel.hidden = false;
+  panel.innerHTML = results.map((match) => `
+    <button class="search-item" data-search-fixture-id="${String(match.fixtureId)}" data-search-league-id="${String(match.tournamentId)}">
+      <div class="league-item-match">${displayTeamName(match.home)} vs ${displayTeamName(match.away)}</div>
+      <div class="search-item-meta">${fmtDayLong(match.day)} • ${fmtTime(match.startTime)} • ${match.categoryName} • ${match.tournamentName}</div>
+    </button>
+  `).join("");
+
+  panel.querySelectorAll("[data-search-fixture-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedLeague = button.getAttribute("data-search-league-id") || "";
+      state.selectedFixtureId = button.getAttribute("data-search-fixture-id") || "";
+      state.leagueMode = false;
+      state.analysisVisible = true;
+      state.searchTerm = "";
+      el("searchInput").value = "";
+      populateControls();
+      renderSearchResults();
+      formatLeagueMatches();
+      renderAnalysis();
+    });
+  });
+}
+
 function getHistEntry(fixtureId) {
   return state.historyByFixtureId[String(fixtureId)] || null;
 }
@@ -57,6 +133,14 @@ function bestAvailableMarkets(match) {
 }
 
 function formatLeagueMatches() {
+  const panel = el("leaguePanel");
+  if (!state.leagueMode || !state.selectedLeague) {
+    panel.hidden = true;
+    el("leagueMatches").innerHTML = "";
+    return;
+  }
+
+  panel.hidden = false;
   const selected = groupMatchesByLeague(state.matches).find((league) => league.id === state.selectedLeague);
   const list = el("leagueMatches");
   const subtitle = el("leagueSubtitle");
@@ -70,11 +154,12 @@ function formatLeagueMatches() {
     return;
   }
 
+  const roundMatches = getCurrentRoundMatches(selected.matches);
   title.textContent = selected.label;
-  subtitle.textContent = "Toate meciurile din competitia selectata.";
-  count.textContent = `${selected.matches.length} meciuri`;
+  subtitle.textContent = "Meciurile disponibile din etapa curenta.";
+  count.textContent = `${roundMatches.length} meciuri`;
 
-  list.innerHTML = selected.matches.map((match) => {
+  list.innerHTML = roundMatches.map((match) => {
     const active = String(match.fixtureId) === String(state.selectedFixtureId) ? " active" : "";
     return `
       <button class="league-item${active}" data-fixture-id="${String(match.fixtureId)}">
@@ -112,6 +197,10 @@ function renderAnalysisEmpty() {
   el("reasonList").innerHTML = "";
   el("reasonList").hidden = true;
   el("toggleReasonsBtn").textContent = "Afiseaza justificarea";
+  el("marketsPanel").hidden = true;
+  el("toggleMarketsBtn").textContent = "Afiseaza toate pietele";
+  el("formPanel").hidden = true;
+  el("toggleFormBtn").textContent = "Afiseaza forma si comparatia";
 }
 
 function renderPick(container, pick, fallbackTitle) {
@@ -230,15 +319,22 @@ function populateControls() {
   if (!selected) {
     el("matchSelect").innerHTML = `<option value="">Alege mai intai competitia</option>`;
     el("matchSelect").value = "";
+    el("matchSelectHint").textContent = "Selecteaza o competitie ca sa vezi meciurile din etapa curenta.";
     return;
   }
 
+  const roundMatches = getCurrentRoundMatches(selected.matches);
+  const selectedMatch = selected.matches.find((match) => String(match.fixtureId) === String(state.selectedFixtureId)) || null;
+  const optionMatches = selectedMatch && !roundMatches.some((match) => String(match.fixtureId) === String(selectedMatch.fixtureId))
+    ? [selectedMatch, ...roundMatches]
+    : roundMatches;
   el("matchSelect").innerHTML = [
     `<option value="">Alege meciul</option>`,
-    ...selected.matches.map((match) => `<option value="${String(match.fixtureId)}">${displayTeamName(match.home)} vs ${displayTeamName(match.away)}</option>`)
+    ...optionMatches.map((match) => `<option value="${String(match.fixtureId)}">${displayTeamName(match.home)} vs ${displayTeamName(match.away)}</option>`)
   ].join("");
+  el("matchSelectHint").textContent = `${roundMatches.length} meciuri disponibile in etapa curenta pentru competitia selectata.`;
 
-  if (!selected.matches.some((match) => String(match.fixtureId) === String(state.selectedFixtureId))) {
+  if (!optionMatches.some((match) => String(match.fixtureId) === String(state.selectedFixtureId))) {
     state.selectedFixtureId = "";
   }
 
@@ -252,6 +348,7 @@ function bindActions() {
     state.leagueMode = false;
     state.analysisVisible = false;
     populateControls();
+    renderSearchResults();
     formatLeagueMatches();
     renderAnalysis();
   });
@@ -260,8 +357,14 @@ function bindActions() {
     state.selectedFixtureId = el("matchSelect").value;
     state.leagueMode = false;
     state.analysisVisible = Boolean(state.selectedFixtureId);
+    renderSearchResults();
     formatLeagueMatches();
     renderAnalysis();
+  });
+
+  el("searchInput").addEventListener("input", () => {
+    state.searchTerm = el("searchInput").value;
+    renderSearchResults();
   });
 
   el("analyzeMatchBtn").addEventListener("click", () => {
@@ -311,9 +414,11 @@ async function init() {
   state.selectedLeague = "";
   state.selectedFixtureId = "";
   state.analysisVisible = false;
+  state.searchTerm = "";
 
   populateControls();
   bindActions();
+  renderSearchResults();
   formatLeagueMatches();
   renderAnalysis();
 }

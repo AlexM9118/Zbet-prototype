@@ -31,8 +31,15 @@
         </label>
 
         <label class="field">
+          <span class="field-label">Cauta meci sau echipa</span>
+          <input id="searchInput" type="text" placeholder="Ex: FCSB" autocomplete="off" />
+        </label>
+        <div id="searchResults" class="search-results" hidden></div>
+
+        <label class="field">
           <span class="field-label">Meci</span>
           <select id="matchSelect"></select>
+          <span id="matchSelectHint" class="muted">Selecteaza o competitie ca sa vezi meciurile din etapa curenta.</span>
         </label>
 
         <div class="action-row">
@@ -41,7 +48,7 @@
         </div>
       </section>
 
-      <section class="panel panel-league">
+      <section id="leaguePanel" class="panel panel-league" hidden>
         <div class="panel-kicker">Meciurile competitiei</div>
         <div class="league-head">
           <div>
