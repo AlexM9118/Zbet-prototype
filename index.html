@@ -25,15 +25,15 @@
     <header class="topbar">
       <div class="brand">
         <img src="./icons/zbet-logo.svg" alt="ZBet" class="brand-logo" />
-        <div>
-          <div class="brand-name">ZBet</div>
+        <div class="brand-copy">
+          <div class="brand-row">
+            <div class="brand-name">ZBet</div>
+            <button id="searchToggleBtn" class="search-toggle search-toggle-inline" type="button" aria-label="Cauta meci sau echipa">
+              <span class="search-toggle-icon" aria-hidden="true"></span>
+            </button>
+          </div>
           <div class="brand-tag">Smarter Football Picks</div>
         </div>
-      </div>
-      <div class="topbar-side">
-        <button id="searchToggleBtn" class="search-toggle" type="button" aria-label="Cauta meci sau echipa">
-          <span class="search-toggle-icon" aria-hidden="true"></span>
-        </button>
       </div>
     </header>
 
@@ -48,6 +48,7 @@
     <nav class="app-tabs" aria-label="Zone principale">
       <button id="tabAnalyzerBtn" class="app-tab is-active" type="button">Analiza</button>
       <button id="tabTopBtn" class="app-tab" type="button">Meciuri recomandate</button>
+      <button id="tabModelBtn" class="app-tab" type="button">Model recent</button>
     </nav>
 
     <main class="layout">
@@ -73,7 +74,7 @@
         </div>
       </section>
 
-      <section id="backtestPanel" class="panel panel-backtest">
+      <section id="backtestPanel" class="panel panel-backtest" hidden>
         <div class="panel-kicker">Model recent</div>
         <h2>Cum s-a miscat modelul recent</h2>
         <p class="panel-copy">Un rezumat simplu care te ajuta sa intelegi daca modelul a fost stabil sau prea agresiv in ultimele meciuri evaluate.</p>
@@ -97,15 +98,14 @@
         <div class="panel-kicker">Selectie rapida</div>
         <div class="league-head">
           <div>
-            <h2>8-10 meciuri recomandate</h2>
-            <p class="panel-copy">O lista scurta de meciuri care merita vazute primele, mai ales cand sunt foarte multe evenimente intr-o zi.</p>
+            <h2>Meciuri recomandate</h2>
           </div>
           <div id="topMatchesCount" class="pill">0 selectii</div>
         </div>
         <div id="topMatchesGrid" class="top-matches-grid"></div>
       </section>
 
-      <section id="analysisPanel" class="panel panel-analysis">
+      <section id="analysisPanel" class="panel panel-analysis" hidden>
         <div class="panel-kicker">Analiza meciului</div>
         <div id="matchHero" class="match-hero"></div>
 

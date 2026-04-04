@@ -42,6 +42,14 @@ function animatePanel(element) {
   });
 }
 
+function animatePanelSwap(element) {
+  if (!element) return;
+  element.classList.remove("panel-enter");
+  window.requestAnimationFrame(() => {
+    element.classList.add("panel-enter");
+  });
+}
+
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
@@ -157,12 +165,14 @@ function renderSearchResults() {
     button.addEventListener("click", () => {
       state.selectedLeague = button.getAttribute("data-search-league-id") || "";
       state.selectedFixtureId = button.getAttribute("data-search-fixture-id") || "";
+      state.activeTab = "analyzer";
       state.leagueMode = false;
       state.analysisVisible = true;
       state.searchTerm = "";
       el("searchInput").value = "";
       el("searchOverlay").hidden = true;
       populateControls();
+      renderTabState();
       renderSearchResults();
       formatLeagueMatches();
       renderAnalysis();
@@ -278,14 +288,13 @@ function renderTopMatches() {
   const items = getTopRecommendedMatches();
   count.textContent = `${items.length} selectii`;
   if (!items.length) {
-    grid.innerHTML = `<div class="reason-item">${escapeHtml(topMatchesIntro(items))}</div>`;
+    grid.innerHTML = `<div class="reason-item">Momentan nu exista selectii suficient de clare pentru lista rapida de azi.</div>`;
     animatePanel(panel);
+    animatePanelSwap(panel);
     return;
   }
 
-  grid.innerHTML = `
-    <div class="reason-item">${escapeHtml(topMatchesIntro(items))}</div>
-    ${items.map(({ match, pair }) => `
+  grid.innerHTML = items.map(({ match, pair }) => `
     <button class="top-match-card" type="button" data-top-fixture-id="${String(match.fixtureId)}" data-top-league-id="${String(match.tournamentId)}">
       <div class="top-match-head">
         <div>
@@ -303,8 +312,7 @@ function renderTopMatches() {
           </div>
         </div>
       </button>
-    `).join("")}
-  `;
+    `).join("");
 
   grid.querySelectorAll("[data-top-fixture-id]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -322,15 +330,20 @@ function renderTopMatches() {
   });
 
   animatePanel(panel);
+  animatePanelSwap(panel);
 }
 
 function renderTabState() {
   const isAnalyzer = state.activeTab === "analyzer";
+  const isTop = state.activeTab === "top";
+  const isModel = state.activeTab === "model";
   el("tabAnalyzerBtn").classList.toggle("is-active", isAnalyzer);
-  el("tabTopBtn").classList.toggle("is-active", !isAnalyzer);
+  el("tabTopBtn").classList.toggle("is-active", isTop);
+  el("tabModelBtn").classList.toggle("is-active", isModel);
   el("controlPanel").hidden = !isAnalyzer;
-  el("backtestPanel").hidden = !isAnalyzer;
-  el("analysisPanel").hidden = !isAnalyzer;
+  el("backtestPanel").hidden = !isModel;
+  el("analysisPanel").hidden = !isAnalyzer || !state.analysisVisible;
+  el("topMatchesPanel").hidden = !isTop;
   if (!isAnalyzer) {
     el("leaguePanel").hidden = true;
   }
@@ -376,28 +389,24 @@ function formatLeagueMatches() {
   list.querySelectorAll("[data-fixture-id]").forEach((button) => {
     button.addEventListener("click", () => {
       state.selectedFixtureId = button.getAttribute("data-fixture-id");
+      state.activeTab = "analyzer";
       state.leagueMode = false;
       state.analysisVisible = true;
       syncSelectors();
+      renderTabState();
       formatLeagueMatches();
       renderAnalysis();
     });
   });
 
   animatePanel(panel);
+  animatePanelSwap(panel);
 }
 
 function renderAnalysisEmpty() {
-  el("matchHero").innerHTML = `
-    <div class="match-hero-title">Selecteaza un meci sau analizeaza toata competitia</div>
-    <div class="match-hero-meta">Alege competitia, apoi meciul pe care vrei sa-l aprofundezi.</div>
-    <div class="match-hero-badges">
-      <span class="pill">1. Alege competitia</span>
-      <span class="pill">2. Alege meciul sau toate meciurile</span>
-    </div>
-  `;
-  el("bestBetBody").innerHTML = `<div class="pick-label">—</div><div class="pick-copy">Nu exista analiza activa pana nu selectezi explicit un meci.</div>`;
-  el("planBBody").innerHTML = `<div class="pick-label">—</div><div class="pick-copy">Plan B apare doar dupa ce pornesti analiza pentru un meci.</div>`;
+  el("matchHero").innerHTML = "";
+  el("bestBetBody").innerHTML = "";
+  el("planBBody").innerHTML = "";
   el("marketsGrid").innerHTML = "";
   el("formGrid").innerHTML = "";
   el("reasonList").innerHTML = "";
@@ -505,14 +514,15 @@ function renderAnalysis() {
     analysisPanel.hidden = true;
     return;
   }
-  analysisPanel.hidden = false;
   if (!state.analysisVisible || !state.selectedFixtureId) {
+    analysisPanel.hidden = true;
     renderAnalysisEmpty();
-    animatePanel(analysisPanel);
     return;
   }
+  analysisPanel.hidden = false;
   const match = findMatchByFixtureId(state.selectedFixtureId);
   if (!match) {
+    analysisPanel.hidden = true;
     renderAnalysisEmpty();
     return;
   }
@@ -524,6 +534,7 @@ function renderAnalysis() {
   renderForm(match);
   renderReasons(match, pair);
   animatePanel(analysisPanel);
+  animatePanelSwap(analysisPanel);
 }
 
 function syncSelectors() {
@@ -580,6 +591,13 @@ function bindActions() {
     renderTopMatches();
   });
 
+  el("tabModelBtn").addEventListener("click", () => {
+    state.activeTab = "model";
+    renderTabState();
+    animatePanel(el("backtestPanel"));
+    animatePanelSwap(el("backtestPanel"));
+  });
+
   el("leagueSelect").addEventListener("change", () => {
     state.selectedLeague = el("leagueSelect").value;
     state.selectedFixtureId = "";
@@ -619,8 +637,10 @@ function bindActions() {
 
   el("analyzeMatchBtn").addEventListener("click", () => {
     if (!state.selectedFixtureId) return;
+    state.activeTab = "analyzer";
     state.leagueMode = false;
     state.analysisVisible = true;
+    renderTabState();
     formatLeagueMatches();
     renderAnalysis();
   });
@@ -654,6 +674,7 @@ function bindActions() {
   el("applyUpdateBtn").addEventListener("click", () => {
     if (pendingWorker) {
       hideUpdateBanner();
+      window.localStorage.setItem(UPDATE_BANNER_DISMISSED_KEY, "true");
       pendingWorker.postMessage({ type: "SKIP_WAITING" });
       return;
     }
