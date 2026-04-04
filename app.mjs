@@ -16,7 +16,47 @@ const state = {
   searchTerm: ""
 };
 
+let pendingWorker = null;
+
 const el = (id) => document.getElementById(id);
+
+function showUpdateBanner() {
+  const banner = el("updateBanner");
+  if (banner) banner.hidden = false;
+}
+
+function hideUpdateBanner() {
+  const banner = el("updateBanner");
+  if (banner) banner.hidden = true;
+}
+
+async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const registration = await navigator.serviceWorker.register("./sw.js?v=1");
+
+  const trackInstalling = (worker) => {
+    if (!worker) return;
+    worker.addEventListener("statechange", () => {
+      if (worker.state === "installed" && navigator.serviceWorker.controller) {
+        pendingWorker = worker;
+        showUpdateBanner();
+      }
+    });
+  };
+
+  trackInstalling(registration.installing);
+  registration.addEventListener("updatefound", () => trackInstalling(registration.installing));
+
+  if (registration.waiting) {
+    pendingWorker = registration.waiting;
+    showUpdateBanner();
+  }
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.location.reload();
+  });
+}
 
 function displayTeamName(name) {
   const raw = String(name || "").trim();
@@ -459,6 +499,14 @@ function bindActions() {
     panel.hidden = !panel.hidden;
     el("toggleReasonsBtn").textContent = panel.hidden ? "Afiseaza justificarea" : "Ascunde justificarea";
   });
+
+  el("applyUpdateBtn").addEventListener("click", () => {
+    if (pendingWorker) {
+      pendingWorker.postMessage({ type: "SKIP_WAITING" });
+      return;
+    }
+    window.location.reload();
+  });
 }
 
 async function init() {
@@ -483,6 +531,8 @@ async function init() {
   renderBacktest();
   formatLeagueMatches();
   renderAnalysis();
+  hideUpdateBanner();
+  registerServiceWorker().catch(() => {});
 }
 
 init();

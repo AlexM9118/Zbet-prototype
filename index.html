@@ -3,10 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#060a10" />
   <title>ZBet Analyzer Prototype</title>
-  <link rel="stylesheet" href="./styles.css" />
+  <link rel="manifest" href="./manifest.webmanifest?v=1" />
+  <link rel="apple-touch-icon" href="./icons/app-icon.svg" />
+  <link rel="stylesheet" href="./styles.css?v=1" />
 </head>
 <body>
+  <div id="updateBanner" class="update-banner" hidden>
+    <div>
+      <div class="update-banner-title">Exista o versiune noua</div>
+      <div class="update-banner-copy">Apasa mai jos pentru a actualiza aplicatia.</div>
+    </div>
+    <button id="applyUpdateBtn" class="btn btn-primary" type="button">Actualizeaza</button>
+  </div>
+
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
@@ -125,6 +139,6 @@
     </main>
   </div>
 
-  <script type="module" src="./app.mjs"></script>
+  <script type="module" src="./app.mjs?v=1"></script>
 </body>
 </html>
