@@ -56,7 +56,7 @@ function scoreCandidate(candidate) {
   let score = candidate.p;
   if (candidate.market === "1X2" && candidate.sel !== "DRAW") score += 0.06;
   if (candidate.market === "Double Chance" && candidate.sel !== "12") score += 0.08;
-  if (candidate.market === "BTTS") score += 0.04;
+  if (candidate.market === "BTTS") score += candidate.sel === "YES" ? 0.05 : -0.18;
   if (candidate.market === "Goals 2.5") score += 0.03;
   if (candidate.market === "Goals 1.5" && candidate.sel === "OVER") score -= 0.12;
   if (candidate.market === "Goals 3.5" && candidate.sel === "UNDER") score -= 0.1;

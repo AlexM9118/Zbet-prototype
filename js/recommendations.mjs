@@ -92,7 +92,7 @@ function pickReasonText(pick) {
   if (pick.market === "BTTS") {
     return pick.sel === "YES"
       ? "Profil ofensiv compatibil pentru ambele echipe."
-      : "Modelul vede sanse bune sa nu marcheze ambele.";
+      : "Modelul vede sanse bune sa nu marcheze ambele, dar piata este folosita mai conservator.";
   }
 
   const market = String(pick.market);
@@ -269,7 +269,9 @@ function scoreMarketFit(candidate) {
     if (candidate.bookOdds >= 1.24 && candidate.bookOdds <= 1.48) score += 0.22;
     if (candidate.bookOdds > 1.48 && candidate.bookOdds <= 1.72 && candidate.p >= 0.58) score += 0.18;
     if (candidate.p >= 0.6 && candidate.edge >= 0.02) score += 0.12;
-    if (candidate.sel === "NO" && candidate.bookOdds < 1.22) score -= 0.1;
+    if (candidate.sel === "YES") score += 0.08;
+    if (candidate.sel === "NO") score -= 0.2;
+    if (candidate.sel === "NO" && candidate.bookOdds < 1.32) score -= 0.16;
     return score;
   }
 
@@ -354,6 +356,10 @@ function isBlandGoalsPick(candidate) {
     (candidate.market === "Goals 1.5" && candidate.sel === "OVER") ||
     (candidate.market === "Goals 3.5" && candidate.sel === "UNDER")
   );
+}
+
+function isDiscouragedPick(candidate) {
+  return candidate?.market === "BTTS" && candidate?.sel === "NO";
 }
 
 function chooseDisplayedRecommendation(scored) {
@@ -776,6 +782,7 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
     bestScore < MIN_PRIMARY_SCORE ||
     best.p < MIN_PRIMARY_PROBABILITY ||
     best.edge < MIN_PRIMARY_EDGE ||
+    (isDiscouragedPick(best) && (best.edge < 0.08 || best.p < 0.66)) ||
     (isBlandGoalsPick(best) && !hasStrongAlt && (best.edge < 0.07 || best.bookOdds < 1.34));
 
   if (shouldSuppressPrimary) {
@@ -794,7 +801,8 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
     const secondaryWeak =
       secondaryScore < (bestScore - 0.34) ||
       secondary.p < 0.54 ||
-      secondary.edge < 0.02;
+      secondary.edge < 0.02 ||
+      (isDiscouragedPick(secondary) && secondary.edge < 0.1);
     if (secondaryWeak) {
       return {
         primary: best,
