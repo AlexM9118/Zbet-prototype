@@ -3,6 +3,9 @@ import {
   MAX_TICKET_LEG_ODDS,
   MIN_MATCH_RECO_ODDS,
   IDEAL_MATCH_RECO_ODDS,
+  MIN_PRIMARY_EDGE,
+  MIN_PRIMARY_PROBABILITY,
+  MIN_PRIMARY_SCORE,
   GOALS_LINES,
   CORNERS_LINES,
   CARDS_LINES,
@@ -344,6 +347,13 @@ function candidateScore(candidate) {
 function candidateLineLabel(candidate) {
   if (candidate.market === "BTTS" || candidate.market === "1X2" || candidate.market === "Double Chance") return `${candidate.market}|${candidate.sel}`;
   return `${candidate.market}|${candidate.sel}`;
+}
+
+function isBlandGoalsPick(candidate) {
+  return (
+    (candidate.market === "Goals 1.5" && candidate.sel === "OVER") ||
+    (candidate.market === "Goals 3.5" && candidate.sel === "UNDER")
+  );
 }
 
 function chooseDisplayedRecommendation(scored) {
@@ -752,10 +762,48 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
 
   const best = chooseDisplayedRecommendation(scored) || scored[0]?.candidate || scoringPool[0] || candidates[0];
   if (!best) return { primary: null, secondary: null, candidates: scored.map((entry) => entry.candidate) };
+  const bestScore = scored.find(({ candidate }) => isSameRecommendation(candidate, best))?.score ?? scored[0]?.score ?? 0;
+  const hasStrongAlt = scored.some(({ candidate, score }) => (
+    candidate &&
+    !isSameRecommendation(candidate, best) &&
+    ["1X2", "DOUBLE_CHANCE", "BTTS"].includes(marketFamily(candidate)) &&
+    candidate.bookOdds >= 1.22 &&
+    candidate.p >= 0.54 &&
+    score >= bestScore - 0.18
+  ));
+
+  const shouldSuppressPrimary =
+    bestScore < MIN_PRIMARY_SCORE ||
+    best.p < MIN_PRIMARY_PROBABILITY ||
+    best.edge < MIN_PRIMARY_EDGE ||
+    (isBlandGoalsPick(best) && !hasStrongAlt && (best.edge < 0.07 || best.bookOdds < 1.34));
+
+  if (shouldSuppressPrimary) {
+    return {
+      primary: null,
+      secondary: null,
+      candidates: scored.map((entry) => entry.candidate)
+    };
+  }
+
   best.confidence = getRecommendationConfidence(best);
 
   const secondary = pickSecondaryRecommendation(scored, best);
-  if (secondary) secondary.confidence = getRecommendationConfidence(secondary);
+  if (secondary) {
+    const secondaryScore = scored.find(({ candidate }) => isSameRecommendation(candidate, secondary))?.score ?? 0;
+    const secondaryWeak =
+      secondaryScore < (bestScore - 0.34) ||
+      secondary.p < 0.54 ||
+      secondary.edge < 0.02;
+    if (secondaryWeak) {
+      return {
+        primary: best,
+        secondary: null,
+        candidates: scored.map((entry) => entry.candidate)
+      };
+    }
+    secondary.confidence = getRecommendationConfidence(secondary);
+  }
 
   return {
     primary: best,

@@ -206,7 +206,10 @@ function renderAnalysisEmpty() {
 
 function renderPick(container, pick, fallbackTitle) {
   if (!pick) {
-    container.innerHTML = `<div class="pick-label">—</div><div class="pick-copy">Nu exista inca o recomandare suficient de buna pentru acest slot.</div>`;
+    container.innerHTML = `
+      <div class="pick-label">Fara recomandare</div>
+      <div class="pick-copy">Modelul nu vede acum un avantaj suficient de clar pentru un pariu de incredere.</div>
+    `;
     return;
   }
   const probability = Number(pick.confidence?.score);
