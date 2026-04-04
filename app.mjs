@@ -1,4 +1,4 @@
-import { getJson, fmtOdds, fmtDayLong, fmtTime, pct01 } from "./js/utils.mjs";
+import { getJson, fmtOdds, fmtDayLong, fmtTime, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchRecommendationPair, getCandidatesForMatch } from "./js/recommendations.mjs";
 
 const TEAM_DISPLAY_ALIASES = {
@@ -8,6 +8,7 @@ const TEAM_DISPLAY_ALIASES = {
 const state = {
   matches: [],
   historyByFixtureId: {},
+  backtest: null,
   selectedLeague: "",
   selectedFixtureId: "",
   leagueMode: false,
@@ -112,6 +113,41 @@ function renderSearchResults() {
       renderAnalysis();
     });
   });
+}
+
+function renderBacktest() {
+  const summaryEl = el("backtestSummary");
+  const marketsEl = el("backtestMarkets");
+  const data = state.backtest;
+  if (!data) {
+    summaryEl.innerHTML = `<div class="reason-item">Backtesting indisponibil momentan.</div>`;
+    marketsEl.innerHTML = "";
+    return;
+  }
+
+  summaryEl.innerHTML = `
+    <article class="backtest-card">
+      <div class="backtest-label">Hit rate model</div>
+      <div class="backtest-value">${data.hitRate == null ? "—" : `${data.hitRate}%`}</div>
+      <div class="backtest-copy">${escapeHtml(`${data.wins} corecte din ${data.sampleSize} pick-uri evaluate istoric.`)}</div>
+    </article>
+    <article class="backtest-card">
+      <div class="backtest-label">No bet</div>
+      <div class="backtest-value">${escapeHtml(String(data.noBet || 0))}</div>
+      <div class="backtest-copy">Meciuri istorice in care modelul n-a vazut suficient edge pentru o recomandare.</div>
+    </article>
+  `;
+
+  const entries = Object.entries(data.byMarket || {}).slice(0, 6);
+  marketsEl.innerHTML = entries.map(([label, item]) => `
+    <article class="backtest-market">
+      <div>
+        <div class="backtest-market-title">${escapeHtml(label)}</div>
+        <div class="backtest-market-meta">${escapeHtml(`${item.picks} pick-uri • ${item.wins} corecte • ${item.losses} gresite`)}</div>
+      </div>
+      <div class="backtest-market-rate">${item.hitRate == null ? "—" : `${item.hitRate}%`}</div>
+    </article>
+  `).join("");
 }
 
 function getHistEntry(fixtureId) {
@@ -428,12 +464,14 @@ function bindActions() {
 async function init() {
   const matchesPayload = await getJson("./data/ui/matches.json");
   const historyPayload = await getJson("./data/ui/history_stats.json");
+  const backtestPayload = await getJson("./data/ui/backtest_summary.json");
   state.matches = (matchesPayload.matches || []).map((match) => ({
     ...match,
     home: displayTeamName(match.home),
     away: displayTeamName(match.away)
   }));
   state.historyByFixtureId = historyPayload.byFixtureId || {};
+  state.backtest = backtestPayload || null;
   state.selectedLeague = "";
   state.selectedFixtureId = "";
   state.analysisVisible = false;
@@ -442,6 +480,7 @@ async function init() {
   populateControls();
   bindActions();
   renderSearchResults();
+  renderBacktest();
   formatLeagueMatches();
   renderAnalysis();
 }

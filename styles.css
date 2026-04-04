@@ -105,6 +105,10 @@ body{min-height:100vh}
   grid-row:1 / span 2;
 }
 
+.panel-backtest{
+  grid-column:1;
+}
+
 .panel-kicker{
   color:#b8c5d7;
   font-size:11px;
@@ -219,6 +223,71 @@ select option{
   margin-top:6px;
   color:var(--muted);
   font-size:12px;
+}
+.backtest-summary{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:16px;
+}
+.backtest-card{
+  padding:14px;
+  border-radius:18px;
+  background:#101723;
+  border:1px solid var(--stroke);
+}
+.backtest-label{
+  color:var(--muted);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  font-weight:800;
+}
+.backtest-value{
+  margin-top:8px;
+  font-size:28px;
+  font-weight:900;
+}
+.backtest-copy{
+  margin-top:6px;
+  color:#d3deea;
+  font-size:13px;
+  line-height:1.5;
+}
+.backtest-markets{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:14px;
+}
+.backtest-market{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:12px;
+  align-items:center;
+  padding:14px;
+  border-radius:18px;
+  background:#101723;
+  border:1px solid var(--stroke);
+}
+.backtest-market-title{
+  font-size:15px;
+  font-weight:800;
+}
+.backtest-market-meta{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+}
+.backtest-market-rate{
+  min-width:72px;
+  text-align:center;
+  padding:10px 12px;
+  border-radius:16px;
+  background:#132032;
+  color:#eef6ff;
+  font-size:18px;
+  font-weight:900;
 }
 .league-item{
   padding:14px 14px;
@@ -376,6 +445,7 @@ select option{
   .layout{grid-template-columns:1fr}
   .panel-analysis{grid-column:auto;grid-row:auto}
   .recommendation-grid,
+  .backtest-summary,
   .markets-grid,
   .form-grid{grid-template-columns:1fr}
 }
