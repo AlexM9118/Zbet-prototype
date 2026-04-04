@@ -282,6 +282,24 @@ select option{
 }
 .best-bet .pick-chip{background:#173b28;color:#e9fff1}
 .plan-b .pick-chip{background:#272339;color:#f4edff}
+.pick-meter{
+  display:flex;
+  gap:6px;
+  margin-top:10px;
+  width:100%;
+}
+.pick-meter-good,
+.pick-meter-bad{
+  display:block;
+  height:10px;
+  border-radius:999px;
+}
+.pick-meter-good{
+  background:linear-gradient(90deg,#16b364,#3fe086);
+}
+.pick-meter-bad{
+  background:linear-gradient(90deg,#8f2630,#d14557);
+}
 .pick-copy{margin-top:10px;color:#cdd8e5;font-size:13px;line-height:1.6}
 
 .analysis-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}

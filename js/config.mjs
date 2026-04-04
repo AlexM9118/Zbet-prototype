@@ -1,7 +1,7 @@
 export const SAFE_THRESHOLD = 0.62;
 export const MAX_TICKET_LEG_ODDS = 1.6;
-export const MIN_MATCH_RECO_ODDS = 1.22;
-export const IDEAL_MATCH_RECO_ODDS = 1.34;
+export const MIN_MATCH_RECO_ODDS = 1.2;
+export const IDEAL_MATCH_RECO_ODDS = 1.32;
 export const GOALS_LINES = [1.5, 2.5, 3.5, 4.5];
 export const CORNERS_LINES = [8.5, 9.5, 10.5];
 export const CARDS_LINES = [3.5, 4.5, 5.5];

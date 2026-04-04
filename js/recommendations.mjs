@@ -176,43 +176,43 @@ function getMarketProfile(candidate) {
   if (candidate.market === "1X2") {
     return {
       category: "1X2",
-      minProb: 0.61,
-      minOdds: 1.28,
-      idealOdds: 1.42,
-      probWeight: 2.9,
-      edgeWeight: 1.7,
-      lowOddsPenalty: 5.2,
+      minProb: 0.59,
+      minOdds: 1.2,
+      idealOdds: 1.34,
+      probWeight: 3.05,
+      edgeWeight: 1.9,
+      lowOddsPenalty: 4.2,
       highOddsPenalty: 1.6,
-      weakProbPenalty: 3.2,
-      baseBonus: -0.08
+      weakProbPenalty: 2.7,
+      baseBonus: 0.18
     };
   }
   if (candidate.market === "Double Chance") {
     return {
       category: "DOUBLE_CHANCE",
-      minProb: 0.68,
-      minOdds: 1.25,
-      idealOdds: 1.36,
-      probWeight: 2.95,
-      edgeWeight: 1.45,
-      lowOddsPenalty: 4.8,
+      minProb: 0.66,
+      minOdds: 1.2,
+      idealOdds: 1.3,
+      probWeight: 3.05,
+      edgeWeight: 1.7,
+      lowOddsPenalty: 3.6,
       highOddsPenalty: 1.1,
-      weakProbPenalty: 2.4,
-      baseBonus: 0.06
+      weakProbPenalty: 2.1,
+      baseBonus: 0.22
     };
   }
   if (candidate.market === "BTTS" || String(candidate.market).startsWith("Goals ")) {
     return {
       category: "GOALS",
-      minProb: 0.58,
-      minOdds: 1.24,
-      idealOdds: 1.34,
-      probWeight: 2.7,
+      minProb: 0.6,
+      minOdds: 1.28,
+      idealOdds: 1.4,
+      probWeight: 2.5,
       edgeWeight: 2.2,
-      lowOddsPenalty: 4.4,
+      lowOddsPenalty: 5.2,
       highOddsPenalty: 1.2,
-      weakProbPenalty: 2.4,
-      baseBonus: 0.1
+      weakProbPenalty: 2.8,
+      baseBonus: -0.1
     };
   }
   if (String(candidate.market).startsWith("Corners ")) {
@@ -248,17 +248,17 @@ function scoreMarketFit(candidate) {
 
   if (candidate.market === "1X2") {
     if (candidate.sel === "DRAW") score -= 0.12;
-    if (candidate.sel !== "DRAW" && candidate.p >= 0.64 && candidate.bookOdds >= 1.25 && candidate.bookOdds <= 1.58) score += 0.28;
-    if (candidate.p >= 0.68 && candidate.bookOdds >= 1.28 && candidate.bookOdds <= 1.62) score += 0.22;
-    if (candidate.bookOdds < 1.24) score -= 0.18;
+    if (candidate.sel !== "DRAW" && candidate.p >= 0.6 && candidate.bookOdds >= 1.2 && candidate.bookOdds <= 1.56) score += 0.34;
+    if (candidate.p >= 0.66 && candidate.bookOdds >= 1.24 && candidate.bookOdds <= 1.62) score += 0.26;
+    if (candidate.bookOdds < 1.18) score -= 0.18;
     return score;
   }
 
   if (candidate.market === "Double Chance") {
-    if ((candidate.sel === "1X" || candidate.sel === "X2") && candidate.bookOdds >= 1.25 && candidate.bookOdds <= 1.48) score += 0.28;
+    if ((candidate.sel === "1X" || candidate.sel === "X2") && candidate.bookOdds >= 1.2 && candidate.bookOdds <= 1.46) score += 0.34;
     if (candidate.sel === "12") score -= 0.18;
-    if (candidate.bookOdds < 1.24) score -= 0.22;
-    if (candidate.p >= 0.74 && candidate.edge >= 0.01) score += 0.12;
+    if (candidate.bookOdds < 1.18) score -= 0.16;
+    if (candidate.p >= 0.72 && candidate.edge >= 0.01) score += 0.16;
     return score;
   }
 
@@ -278,14 +278,14 @@ function scoreMarketFit(candidate) {
     if (candidate.sel === "UNDER" && line >= 2.5 && line <= 3.5) score += 0.06;
     if (candidate.sel === "UNDER" && line >= 4.5) score -= 0.5;
     if (candidate.sel === "UNDER" && line >= 4.5 && candidate.bookOdds < 1.34) score -= 0.18;
-    if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds < 1.30) score -= 0.34;
-    if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds >= 1.30 && candidate.bookOdds < 1.38) score -= 0.22;
-    if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds >= 1.38 && candidate.bookOdds <= 1.48) score -= 0.1;
-    if (candidate.sel === "UNDER" && line === 3.5) score -= 0.18;
-    if (candidate.sel === "OVER" && line <= 1.5 && candidate.bookOdds < 1.26) score -= 0.34;
-    if (candidate.sel === "OVER" && line <= 1.5 && candidate.bookOdds >= 1.26 && candidate.bookOdds < 1.32) score -= 0.16;
-    if (candidate.sel === "OVER" && line <= 1.5 && candidate.bookOdds >= 1.32 && candidate.bookOdds <= 1.42) score -= 0.08;
-    if (candidate.sel === "OVER" && line <= 1.5) score -= 0.14;
+    if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds < 1.30) score -= 0.52;
+    if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds >= 1.30 && candidate.bookOdds < 1.38) score -= 0.34;
+    if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds >= 1.38 && candidate.bookOdds <= 1.48) score -= 0.18;
+    if (candidate.sel === "UNDER" && line === 3.5) score -= 0.24;
+    if (candidate.sel === "OVER" && line <= 1.5 && candidate.bookOdds < 1.26) score -= 0.54;
+    if (candidate.sel === "OVER" && line <= 1.5 && candidate.bookOdds >= 1.26 && candidate.bookOdds < 1.32) score -= 0.28;
+    if (candidate.sel === "OVER" && line <= 1.5 && candidate.bookOdds >= 1.32 && candidate.bookOdds <= 1.42) score -= 0.16;
+    if (candidate.sel === "OVER" && line <= 1.5) score -= 0.24;
     if (candidate.sel === "OVER" && line === 2.5 && candidate.bookOdds >= 1.28 && candidate.bookOdds <= 1.56) score += 0.12;
     if (candidate.sel === "UNDER" && line === 2.5 && candidate.bookOdds >= 1.34 && candidate.bookOdds <= 1.52) score += 0.08;
     return score;
@@ -355,15 +355,52 @@ function chooseDisplayedRecommendation(scored) {
   const lineOfBest = candidateLineLabel(best);
   const goalsLine = String(best.market).match(/^Goals (\d+(?:\.\d+)?)$/)?.[1];
 
+  const blandEscape = ordered.find(({ candidate }) => (
+    candidate &&
+    candidate.bookOdds >= 1.28 &&
+    ["BTTS", "1X2", "DOUBLE_CHANCE"].includes(marketFamily(candidate)) &&
+    candidate.p >= 0.52
+  ))?.candidate || null;
+
+  if (blandEscape && best.market === "Goals 1.5" && best.sel === "OVER") {
+    return blandEscape;
+  }
+
+  const underEscape = ordered.find(({ candidate }) => (
+    candidate &&
+    candidate.bookOdds >= 1.28 &&
+    (
+      ["BTTS", "1X2", "DOUBLE_CHANCE"].includes(marketFamily(candidate)) ||
+      (marketFamily(candidate) === "GOALS" && candidate.market === "Goals 2.5")
+    ) &&
+    candidate.p >= 0.52
+  ))?.candidate || null;
+
+  if (underEscape && best.market === "Goals 3.5" && best.sel === "UNDER") {
+    return underEscape;
+  }
+
   const familyAlt = ordered.find(({ candidate, score }) => (
     candidate &&
     marketFamily(candidate) !== familyOfBest &&
     candidate.bookOdds >= 1.26 &&
-    score >= ordered[0].score - 0.22
+    score >= ordered[0].score - 0.42
   ))?.candidate || null;
 
   if (familyAlt && familyOfBest === "GOALS" && ["1.5", "3.5", "4.5"].includes(String(goalsLine))) {
     return familyAlt;
+  }
+
+  const structuralAlt = ordered.find(({ candidate, score }) => (
+    candidate &&
+    ["1X2", "DOUBLE_CHANCE", "BTTS"].includes(marketFamily(candidate)) &&
+    candidate.bookOdds >= 1.2 &&
+    candidate.p >= 0.52 &&
+    score >= ordered[0].score - 0.5
+  ))?.candidate || null;
+
+  if (structuralAlt && familyOfBest === "GOALS" && ["1.5", "3.5", "4.5"].includes(String(goalsLine))) {
+    return structuralAlt;
   }
 
   const balancedGoalsAlt = ordered.find(({ candidate, score }) => (
@@ -371,7 +408,7 @@ function chooseDisplayedRecommendation(scored) {
     marketFamily(candidate) === "GOALS" &&
     candidate.market === "Goals 2.5" &&
     candidate.bookOdds >= 1.28 &&
-    score >= ordered[0].score - 0.18
+    score >= ordered[0].score - 0.26
   ))?.candidate || null;
 
   if (balancedGoalsAlt && familyOfBest === "GOALS" && ["1.5", "3.5", "4.5"].includes(String(goalsLine))) {
@@ -382,7 +419,7 @@ function chooseDisplayedRecommendation(scored) {
     candidate &&
     candidateLineLabel(candidate) !== lineOfBest &&
     candidate.bookOdds >= 1.28 &&
-    score >= ordered[0].score - 0.16
+    score >= ordered[0].score - 0.24
   ))?.candidate || null;
 
   if (
@@ -493,6 +530,20 @@ export function getRecommendationConfidence(candidate) {
   return { label: "Moderata", tone: "low" };
 }
 
+function diversifyCandidates(candidates) {
+  const limits = {
+    "Goals 1.5|OVER": 2,
+    "Goals 3.5|UNDER": 2
+  };
+  const seen = new Map();
+  return candidates.filter((candidate) => {
+    const key = `${candidate.market}|${candidate.sel}`;
+    const next = (seen.get(key) || 0) + 1;
+    seen.set(key, next);
+    return !limits[key] || next <= limits[key];
+  });
+}
+
 export function getCandidatesForMatch(match, getHistEntry, minProbability = 0.58) {
   const entry = getHistEntry(match.fixtureId);
   const candidates = [];
@@ -565,10 +616,10 @@ export function getCandidatesForMatch(match, getHistEntry, minProbability = 0.58
     }
   }
 
-  return candidates
+  return diversifyCandidates(candidates
     .filter(Boolean)
     .filter((candidate) => candidate.p >= minProbability)
-    .sort((a, b) => candidateScore(b) - candidateScore(a) || (b.p - a.p) || (b.edge - a.edge) || (a.bookOdds - b.bookOdds));
+    .sort((a, b) => candidateScore(b) - candidateScore(a) || (b.p - a.p) || (b.edge - a.edge) || (a.bookOdds - b.bookOdds)));
 }
 
 function fallbackCandidatesFromOdds(match) {

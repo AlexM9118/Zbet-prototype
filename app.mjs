@@ -209,11 +209,18 @@ function renderPick(container, pick, fallbackTitle) {
     container.innerHTML = `<div class="pick-label">—</div><div class="pick-copy">Nu exista inca o recomandare suficient de buna pentru acest slot.</div>`;
     return;
   }
+  const probability = Number(pick.confidence?.score);
+  const probabilityPct = Number.isFinite(probability) ? Math.round(probability * 100) : null;
+  const barWidth = probabilityPct == null ? 50 : Math.max(10, Math.min(100, probabilityPct));
   container.innerHTML = `
     <div class="pick-label">${pick.displayLabel || fallbackTitle}</div>
     <div class="pick-row">
       <div class="pick-chip">${pick.confidence?.score != null ? pct01(pick.confidence.score) : "—"}</div>
       <div class="muted">${Number.isFinite(Number(pick.bookOdds)) ? `cota ${fmtOdds(pick.bookOdds)}` : "fara cota"}</div>
+    </div>
+    <div class="pick-meter" aria-hidden="true">
+      <span class="pick-meter-good" style="width:${barWidth}%"></span>
+      <span class="pick-meter-bad" style="width:${100 - barWidth}%"></span>
     </div>
     <div class="pick-copy">${pick.reason || "Selectie recomandata pe baza modelului si a pietei."}</div>
   `;
