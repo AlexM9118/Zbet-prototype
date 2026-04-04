@@ -11,6 +11,7 @@ const state = {
   backtest: null,
   selectedLeague: "",
   selectedFixtureId: "",
+  activeTab: "analyzer",
   leagueMode: false,
   analysisVisible: false,
   searchTerm: ""
@@ -30,10 +31,18 @@ function hideUpdateBanner() {
   if (banner) banner.hidden = true;
 }
 
+function animatePanel(element) {
+  if (!element) return;
+  element.classList.remove("panel-refresh");
+  window.requestAnimationFrame(() => {
+    element.classList.add("panel-refresh");
+  });
+}
+
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=1");
+  const registration = await navigator.serviceWorker.register("./sw.js?v=2");
 
   const trackInstalling = (worker) => {
     if (!worker) return;
@@ -209,9 +218,103 @@ function bestAvailableMarkets(match) {
   return candidates.slice(0, 8);
 }
 
+function getTopRecommendedMatches() {
+  return state.matches
+    .map((match) => {
+      const pair = getRecommendedPair(match);
+      const primary = pair?.primary || null;
+      if (!primary || !Number.isFinite(Number(primary?.confidence?.score))) return null;
+      return {
+        match,
+        pair,
+        score: Number(primary.confidence.score),
+        day: String(match.day || ""),
+        startTime: String(match.startTime || "")
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const dayCmp = a.day.localeCompare(b.day);
+      if (dayCmp !== 0) return dayCmp;
+      return a.startTime.localeCompare(b.startTime);
+    })
+    .slice(0, 10);
+}
+
+function renderTopMatches() {
+  const panel = el("topMatchesPanel");
+  const grid = el("topMatchesGrid");
+  const count = el("topMatchesCount");
+  const visible = state.activeTab === "top";
+  panel.hidden = !visible;
+  if (!visible) {
+    grid.innerHTML = "";
+    count.textContent = "0 selectii";
+    return;
+  }
+
+  const items = getTopRecommendedMatches();
+  count.textContent = `${items.length} selectii`;
+  if (!items.length) {
+    grid.innerHTML = `<div class="reason-item">Momentan nu exista suficiente meciuri cu edge clar pentru o selectie rapida.</div>`;
+    animatePanel(panel);
+    return;
+  }
+
+  grid.innerHTML = items.map(({ match, pair }) => `
+    <button class="top-match-card" type="button" data-top-fixture-id="${String(match.fixtureId)}" data-top-league-id="${String(match.tournamentId)}">
+      <div class="top-match-head">
+        <div>
+          <div class="top-match-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
+          <div class="top-match-meta">${escapeHtml(fmtDayLong(match.day))} • ${escapeHtml(fmtTime(match.startTime))} • ${escapeHtml(match.categoryName)} • ${escapeHtml(match.tournamentName)}</div>
+        </div>
+        <div class="pill">${match.hasOdds ? "live" : "fara live"}</div>
+      </div>
+      <div class="top-match-pick">
+        <div class="top-match-kicker">Pronostic recomandat</div>
+        <div class="top-match-pick-label">${escapeHtml(pair.primary.displayLabel || "Fara recomandare")}</div>
+        <div class="top-match-footer">
+          <div class="top-match-copy">${escapeHtml(pair.primary.reason || "Selectie rapida pentru analiza detaliata.")}</div>
+          <div class="confidence-pill">${pair.primary?.confidence?.score != null ? pct01(pair.primary.confidence.score) : "—"}</div>
+        </div>
+      </div>
+    </button>
+  `).join("");
+
+  grid.querySelectorAll("[data-top-fixture-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedLeague = button.getAttribute("data-top-league-id") || "";
+      state.selectedFixtureId = button.getAttribute("data-top-fixture-id") || "";
+      state.activeTab = "analyzer";
+      state.leagueMode = false;
+      state.analysisVisible = true;
+      populateControls();
+      renderTabState();
+      renderSearchResults();
+      formatLeagueMatches();
+      renderAnalysis();
+    });
+  });
+
+  animatePanel(panel);
+}
+
+function renderTabState() {
+  const isAnalyzer = state.activeTab === "analyzer";
+  el("tabAnalyzerBtn").classList.toggle("is-active", isAnalyzer);
+  el("tabTopBtn").classList.toggle("is-active", !isAnalyzer);
+  el("controlPanel").hidden = !isAnalyzer;
+  el("backtestPanel").hidden = !isAnalyzer;
+  el("analysisPanel").hidden = !isAnalyzer;
+  if (!isAnalyzer) {
+    el("leaguePanel").hidden = true;
+  }
+}
+
 function formatLeagueMatches() {
   const panel = el("leaguePanel");
-  if (!state.leagueMode || !state.selectedLeague) {
+  if (state.activeTab !== "analyzer" || !state.leagueMode || !state.selectedLeague) {
     panel.hidden = true;
     el("leagueMatches").innerHTML = "";
     return;
@@ -256,6 +359,8 @@ function formatLeagueMatches() {
       renderAnalysis();
     });
   });
+
+  animatePanel(panel);
 }
 
 function renderAnalysisEmpty() {
@@ -371,8 +476,15 @@ function renderHero(match) {
 }
 
 function renderAnalysis() {
+  const analysisPanel = el("analysisPanel");
+  if (state.activeTab !== "analyzer") {
+    analysisPanel.hidden = true;
+    return;
+  }
+  analysisPanel.hidden = false;
   if (!state.analysisVisible || !state.selectedFixtureId) {
     renderAnalysisEmpty();
+    animatePanel(analysisPanel);
     return;
   }
   const match = findMatchByFixtureId(state.selectedFixtureId);
@@ -387,6 +499,7 @@ function renderAnalysis() {
   renderMarkets(match, pair);
   renderForm(match);
   renderReasons(match, pair);
+  animatePanel(analysisPanel);
 }
 
 function syncSelectors() {
@@ -429,6 +542,20 @@ function populateControls() {
 }
 
 function bindActions() {
+  el("tabAnalyzerBtn").addEventListener("click", () => {
+    state.activeTab = "analyzer";
+    renderTabState();
+    formatLeagueMatches();
+    renderAnalysis();
+    renderTopMatches();
+  });
+
+  el("tabTopBtn").addEventListener("click", () => {
+    state.activeTab = "top";
+    renderTabState();
+    renderTopMatches();
+  });
+
   el("leagueSelect").addEventListener("change", () => {
     state.selectedLeague = el("leagueSelect").value;
     state.selectedFixtureId = "";
@@ -522,15 +649,18 @@ async function init() {
   state.backtest = backtestPayload || null;
   state.selectedLeague = "";
   state.selectedFixtureId = "";
+  state.activeTab = "analyzer";
   state.analysisVisible = false;
   state.searchTerm = "";
 
   populateControls();
   bindActions();
+  renderTabState();
   renderSearchResults();
   renderBacktest();
   formatLeagueMatches();
   renderAnalysis();
+  renderTopMatches();
   hideUpdateBanner();
   registerServiceWorker().catch(() => {});
 }

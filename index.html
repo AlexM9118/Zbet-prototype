@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#060a10" />
   <title>ZBet Analyzer Prototype</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=1" />
+  <link rel="manifest" href="./manifest.webmanifest?v=2" />
   <link rel="apple-touch-icon" href="./icons/app-icon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=1" />
+  <link rel="stylesheet" href="./styles.css?v=2" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -46,8 +46,13 @@
       <div id="searchResults" class="search-results" hidden></div>
     </section>
 
+    <nav class="app-tabs" aria-label="Zone principale">
+      <button id="tabAnalyzerBtn" class="app-tab is-active" type="button">Analyzer</button>
+      <button id="tabTopBtn" class="app-tab" type="button">Meciuri recomandate</button>
+    </nav>
+
     <main class="layout">
-      <section class="panel panel-control">
+      <section id="controlPanel" class="panel panel-control">
         <div class="panel-kicker">Pasul 1</div>
         <h1>Alege competitia si meciul</h1>
         <p class="panel-copy">Directia noua: analiza meci cu meci, cu posibilitatea de a vedea rapid si toate meciurile din liga selectata.</p>
@@ -69,7 +74,7 @@
         </div>
       </section>
 
-      <section class="panel panel-backtest">
+      <section id="backtestPanel" class="panel panel-backtest">
         <div class="panel-kicker">Backtesting</div>
         <h2>Cum s-a comportat modelul pe istoric</h2>
         <p class="panel-copy">Modulul foloseste rezultatele istorice locale, fara API-uri noi si fara cote istorice reale. E util pentru directia modelului, nu pentru profit calculat exact.</p>
@@ -89,7 +94,19 @@
         <div id="leagueMatches" class="league-list"></div>
       </section>
 
-      <section class="panel panel-analysis">
+      <section id="topMatchesPanel" class="panel panel-top-matches" hidden>
+        <div class="panel-kicker">Shortcut de weekend</div>
+        <div class="league-head">
+          <div>
+            <h2>8-10 meciuri recomandate</h2>
+            <p class="panel-copy">Selectie rapida din meciurile disponibile acum, ca sa nu mai filtrezi manual zeci de evenimente.</p>
+          </div>
+          <div id="topMatchesCount" class="pill">0 selectii</div>
+        </div>
+        <div id="topMatchesGrid" class="top-matches-grid"></div>
+      </section>
+
+      <section id="analysisPanel" class="panel panel-analysis">
         <div class="panel-kicker">Match Analyzer</div>
         <div id="matchHero" class="match-hero"></div>
 
@@ -139,6 +156,6 @@
     </main>
   </div>
 
-  <script type="module" src="./app.mjs?v=1"></script>
+  <script type="module" src="./app.mjs?v=2"></script>
 </body>
 </html>
