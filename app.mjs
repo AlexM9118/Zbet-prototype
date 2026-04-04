@@ -18,12 +18,15 @@ const state = {
 };
 
 let pendingWorker = null;
+const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
 
 const el = (id) => document.getElementById(id);
 
 function showUpdateBanner() {
   const banner = el("updateBanner");
-  if (banner) banner.hidden = false;
+  if (!banner || !pendingWorker) return;
+  if (window.localStorage.getItem(UPDATE_BANNER_DISMISSED_KEY) === "true") return;
+  banner.hidden = false;
 }
 
 function hideUpdateBanner() {
@@ -42,13 +45,14 @@ function animatePanel(element) {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=2");
+  const registration = await navigator.serviceWorker.register("./sw.js?v=3");
 
   const trackInstalling = (worker) => {
     if (!worker) return;
     worker.addEventListener("statechange", () => {
       if (worker.state === "installed" && navigator.serviceWorker.controller) {
         pendingWorker = worker;
+        window.localStorage.removeItem(UPDATE_BANNER_DISMISSED_KEY);
         showUpdateBanner();
       }
     });
@@ -59,10 +63,12 @@ async function registerServiceWorker() {
 
   if (registration.waiting) {
     pendingWorker = registration.waiting;
+    window.localStorage.removeItem(UPDATE_BANNER_DISMISSED_KEY);
     showUpdateBanner();
   }
 
   navigator.serviceWorker.addEventListener("controllerchange", () => {
+    window.localStorage.removeItem(UPDATE_BANNER_DISMISSED_KEY);
     window.location.reload();
   });
 }
@@ -176,14 +182,14 @@ function renderBacktest() {
 
   summaryEl.innerHTML = `
     <article class="backtest-card">
-      <div class="backtest-label">Hit rate model</div>
+      <div class="backtest-label">Rata recenta</div>
       <div class="backtest-value">${data.hitRate == null ? "—" : `${data.hitRate}%`}</div>
-      <div class="backtest-copy">${escapeHtml(`${data.wins} corecte din ${data.sampleSize} pick-uri evaluate istoric.`)}</div>
+      <div class="backtest-copy">${escapeHtml(`${data.wins} recomandari au iesit din ${data.sampleSize} meciuri evaluate recent.`)}</div>
     </article>
     <article class="backtest-card">
-      <div class="backtest-label">No bet</div>
+      <div class="backtest-label">Meciuri sarite</div>
       <div class="backtest-value">${escapeHtml(String(data.noBet || 0))}</div>
-      <div class="backtest-copy">Meciuri istorice in care modelul n-a vazut suficient edge pentru o recomandare.</div>
+      <div class="backtest-copy">Partidele in care modelul a preferat sa nu forteze o recomandare slaba.</div>
     </article>
   `;
 
@@ -219,14 +225,17 @@ function bestAvailableMarkets(match) {
 }
 
 function getTopRecommendedMatches() {
-  return state.matches
+  const items = state.matches
     .map((match) => {
       const pair = getRecommendedPair(match);
-      const primary = pair?.primary || null;
+      const primary = pair?.primary || bestAvailableMarkets(match)[0] || null;
       if (!primary || !Number.isFinite(Number(primary?.confidence?.score))) return null;
       return {
         match,
-        pair,
+        pair: {
+          primary,
+          secondary: pair?.secondary || null
+        },
         score: Number(primary.confidence.score),
         day: String(match.day || ""),
         startTime: String(match.startTime || "")
@@ -238,8 +247,20 @@ function getTopRecommendedMatches() {
       const dayCmp = a.day.localeCompare(b.day);
       if (dayCmp !== 0) return dayCmp;
       return a.startTime.localeCompare(b.startTime);
-    })
-    .slice(0, 10);
+    });
+
+  if (items.length <= 8) return items;
+  return items.slice(0, 10);
+}
+
+function topMatchesIntro(items) {
+  if (!items.length) {
+    return "Inca nu sunt destule meciuri clare pentru o selectie rapida.";
+  }
+  if (items.length < 8) {
+    return "Lista ramane mai scurta azi, pentru ca modelul a gasit mai putine meciuri curate.";
+  }
+  return "Aici vezi meciurile de la care merita sa pornesti mai intai.";
 }
 
 function renderTopMatches() {
@@ -257,12 +278,14 @@ function renderTopMatches() {
   const items = getTopRecommendedMatches();
   count.textContent = `${items.length} selectii`;
   if (!items.length) {
-    grid.innerHTML = `<div class="reason-item">Momentan nu exista suficiente meciuri cu edge clar pentru o selectie rapida.</div>`;
+    grid.innerHTML = `<div class="reason-item">${escapeHtml(topMatchesIntro(items))}</div>`;
     animatePanel(panel);
     return;
   }
 
-  grid.innerHTML = items.map(({ match, pair }) => `
+  grid.innerHTML = `
+    <div class="reason-item">${escapeHtml(topMatchesIntro(items))}</div>
+    ${items.map(({ match, pair }) => `
     <button class="top-match-card" type="button" data-top-fixture-id="${String(match.fixtureId)}" data-top-league-id="${String(match.tournamentId)}">
       <div class="top-match-head">
         <div>
@@ -271,16 +294,17 @@ function renderTopMatches() {
         </div>
         <div class="pill">${match.hasOdds ? "live" : "fara live"}</div>
       </div>
-      <div class="top-match-pick">
-        <div class="top-match-kicker">Pronostic recomandat</div>
-        <div class="top-match-pick-label">${escapeHtml(pair.primary.displayLabel || "Fara recomandare")}</div>
-        <div class="top-match-footer">
-          <div class="top-match-copy">${escapeHtml(pair.primary.reason || "Selectie rapida pentru analiza detaliata.")}</div>
-          <div class="confidence-pill">${pair.primary?.confidence?.score != null ? pct01(pair.primary.confidence.score) : "—"}</div>
+        <div class="top-match-pick">
+          <div class="top-match-kicker">Pronostic recomandat</div>
+          <div class="top-match-pick-label">${escapeHtml(pair.primary.displayLabel || "Fara recomandare")}</div>
+          <div class="top-match-footer">
+            <div class="top-match-copy">${escapeHtml(pair.primary.reason || "Selectie rapida pentru analiza detaliata.")}</div>
+            <div class="confidence-pill">${pair.primary?.confidence?.score != null ? pct01(pair.primary.confidence.score) : "—"}</div>
+          </div>
         </div>
-      </div>
-    </button>
-  `).join("");
+      </button>
+    `).join("")}
+  `;
 
   grid.querySelectorAll("[data-top-fixture-id]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -366,7 +390,7 @@ function formatLeagueMatches() {
 function renderAnalysisEmpty() {
   el("matchHero").innerHTML = `
     <div class="match-hero-title">Selecteaza un meci sau analizeaza toata competitia</div>
-    <div class="match-hero-meta">Prototipul nu afiseaza automat o analiza implicita. Alegerea iti apartine.</div>
+    <div class="match-hero-meta">Alege competitia, apoi meciul pe care vrei sa-l aprofundezi.</div>
     <div class="match-hero-badges">
       <span class="pill">1. Alege competitia</span>
       <span class="pill">2. Alege meciul sau toate meciurile</span>
@@ -389,7 +413,7 @@ function renderPick(container, pick, fallbackTitle) {
   if (!pick) {
     container.innerHTML = `
       <div class="pick-label">Fara recomandare</div>
-      <div class="pick-copy">Modelul nu vede acum un avantaj suficient de clar pentru un pariu de incredere.</div>
+      <div class="pick-copy">Momentan nu exista un pronostic suficient de clar pentru a fi recomandat cu incredere.</div>
     `;
     return;
   }
@@ -400,13 +424,13 @@ function renderPick(container, pick, fallbackTitle) {
     <div class="pick-label">${pick.displayLabel || fallbackTitle}</div>
     <div class="pick-row">
       <div class="pick-chip">${pick.confidence?.score != null ? pct01(pick.confidence.score) : "—"}</div>
-      <div class="muted">${Number.isFinite(Number(pick.bookOdds)) ? `cota ${fmtOdds(pick.bookOdds)}` : "fara cota"}</div>
+      <div class="muted">${Number.isFinite(Number(pick.bookOdds)) ? `Cota ${fmtOdds(pick.bookOdds)}` : "Cota indisponibila"}</div>
     </div>
     <div class="pick-meter" aria-hidden="true">
       <span class="pick-meter-good" style="width:${barWidth}%"></span>
       <span class="pick-meter-bad" style="width:${100 - barWidth}%"></span>
     </div>
-    <div class="pick-copy">${pick.reason || "Selectie recomandata pe baza modelului si a pietei."}</div>
+    <div class="pick-copy">${pick.reason || "Pronostic selectat pe baza formei, contextului si pietei disponibile."}</div>
   `;
 }
 
@@ -419,9 +443,9 @@ function renderMarkets(match, pair) {
     const width = Number.isFinite(probability) ? Math.max(8, Math.min(100, probability * 100)) : 8;
     return `
       <article class="market-card">
-        <div class="market-title">${selectedLabels.has(item.displayLabel) ? "Piata recomandata" : "Piata disponibila"}</div>
+        <div class="market-title">${selectedLabels.has(item.displayLabel) ? "Piata recomandata" : "Alta varianta"}</div>
         <div class="market-value">${item.displayLabel}</div>
-        <div class="market-meta">${Number.isFinite(Number(item.bookOdds)) ? `cota ${fmtOdds(item.bookOdds)}` : "fara cota live"}${Number.isFinite(probability) ? ` • ${pct01(probability)}` : ""}</div>
+        <div class="market-meta">${Number.isFinite(Number(item.bookOdds)) ? `Cota ${fmtOdds(item.bookOdds)}` : "Cota indisponibila"}${Number.isFinite(probability) ? ` • ${pct01(probability)}` : ""}</div>
         <div class="prob-bar"><span style="width:${width}%"></span></div>
       </article>
     `;
@@ -457,9 +481,9 @@ function renderReasons(match, pair) {
   if (pair?.secondary?.displayLabel) reasons.push(`Plan B: ${pair.secondary.displayLabel} ramane vizibil ca alternativa, nu ca recomandare dominanta.`);
   const hist = getHistEntry(match.fixtureId);
   if (hist?.homeStats && hist?.awayStats) {
-    reasons.push("Forma celor doua echipe este disponibila si poate fi extinsa doar la cerere, ca sa nu incarce ecranul principal.");
+    reasons.push("Forma celor doua echipe este disponibila si ramane ascunsa pana cand alegi sa o deschizi.");
   }
-  reasons.push("Toate pietele pot fi afisate cu cote si o bara de probabilitate, ca sa vezi tabloul complet al meciului.");
+  reasons.push("Poti deschide toate pietele disponibile daca vrei sa vezi tabloul complet al meciului.");
   el("reasonList").innerHTML = reasons.map((reason) => `<div class="reason-item">${reason}</div>`).join("");
 }
 
@@ -629,9 +653,12 @@ function bindActions() {
 
   el("applyUpdateBtn").addEventListener("click", () => {
     if (pendingWorker) {
+      hideUpdateBanner();
       pendingWorker.postMessage({ type: "SKIP_WAITING" });
       return;
     }
+    window.localStorage.setItem(UPDATE_BANNER_DISMISSED_KEY, "true");
+    hideUpdateBanner();
     window.location.reload();
   });
 }

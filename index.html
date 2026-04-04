@@ -7,10 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#060a10" />
-  <title>ZBet Analyzer Prototype</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=2" />
+  <title>ZBet</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=3" />
   <link rel="apple-touch-icon" href="./icons/app-icon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=2" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -27,14 +27,13 @@
         <img src="./icons/zbet-logo.svg" alt="ZBet" class="brand-logo" />
         <div>
           <div class="brand-name">ZBet</div>
-          <div class="brand-tag">Match analyzer prototype</div>
+          <div class="brand-tag">Smarter Football Picks</div>
         </div>
       </div>
       <div class="topbar-side">
         <button id="searchToggleBtn" class="search-toggle" type="button" aria-label="Cauta meci sau echipa">
           <span class="search-toggle-icon" aria-hidden="true"></span>
         </button>
-        <div class="topbar-note">Prototip separat, fara impact asupra app-ului live</div>
       </div>
     </header>
 
@@ -47,15 +46,15 @@
     </section>
 
     <nav class="app-tabs" aria-label="Zone principale">
-      <button id="tabAnalyzerBtn" class="app-tab is-active" type="button">Analyzer</button>
+      <button id="tabAnalyzerBtn" class="app-tab is-active" type="button">Analiza</button>
       <button id="tabTopBtn" class="app-tab" type="button">Meciuri recomandate</button>
     </nav>
 
     <main class="layout">
       <section id="controlPanel" class="panel panel-control">
-        <div class="panel-kicker">Pasul 1</div>
+        <div class="panel-kicker">Alege meciul</div>
         <h1>Alege competitia si meciul</h1>
-        <p class="panel-copy">Directia noua: analiza meci cu meci, cu posibilitatea de a vedea rapid si toate meciurile din liga selectata.</p>
+        <p class="panel-copy">Selectezi competitia, alegi meciul si vezi rapid cele mai bune variante pentru acel duel.</p>
 
         <label class="field">
           <span class="field-label">Competitie</span>
@@ -75,9 +74,9 @@
       </section>
 
       <section id="backtestPanel" class="panel panel-backtest">
-        <div class="panel-kicker">Backtesting</div>
-        <h2>Cum s-a comportat modelul pe istoric</h2>
-        <p class="panel-copy">Modulul foloseste rezultatele istorice locale, fara API-uri noi si fara cote istorice reale. E util pentru directia modelului, nu pentru profit calculat exact.</p>
+        <div class="panel-kicker">Model recent</div>
+        <h2>Cum s-a miscat modelul recent</h2>
+        <p class="panel-copy">Un rezumat simplu care te ajuta sa intelegi daca modelul a fost stabil sau prea agresiv in ultimele meciuri evaluate.</p>
         <div id="backtestSummary" class="backtest-summary"></div>
         <div id="backtestMarkets" class="backtest-markets"></div>
       </section>
@@ -95,11 +94,11 @@
       </section>
 
       <section id="topMatchesPanel" class="panel panel-top-matches" hidden>
-        <div class="panel-kicker">Shortcut de weekend</div>
+        <div class="panel-kicker">Selectie rapida</div>
         <div class="league-head">
           <div>
             <h2>8-10 meciuri recomandate</h2>
-            <p class="panel-copy">Selectie rapida din meciurile disponibile acum, ca sa nu mai filtrezi manual zeci de evenimente.</p>
+            <p class="panel-copy">O lista scurta de meciuri care merita vazute primele, mai ales cand sunt foarte multe evenimente intr-o zi.</p>
           </div>
           <div id="topMatchesCount" class="pill">0 selectii</div>
         </div>
@@ -107,7 +106,7 @@
       </section>
 
       <section id="analysisPanel" class="panel panel-analysis">
-        <div class="panel-kicker">Match Analyzer</div>
+        <div class="panel-kicker">Analiza meciului</div>
         <div id="matchHero" class="match-hero"></div>
 
         <div class="recommendation-grid">
@@ -129,7 +128,7 @@
         <section id="marketsPanel" class="detail-panel" hidden>
           <div class="detail-head">
             <h3>Toate pietele disponibile</h3>
-            <span class="muted">Probabilitate implicita din cota acolo unde avem pret live</span>
+            <span class="muted">Pietele disponibile pentru acest meci, cu cote si un indicator vizual de incredere.</span>
           </div>
           <div id="marketsGrid" class="markets-grid"></div>
         </section>
@@ -137,7 +136,7 @@
         <section id="formPanel" class="detail-panel" hidden>
           <div class="detail-head">
             <h3>Forma si comparatia echipelor</h3>
-            <span class="muted">Ascunsa implicit, ca sa nu incarce ecranul principal.</span>
+            <span class="muted">Detaliile sunt ascunse implicit, ca sa ramana ecranul principal mai curat.</span>
           </div>
           <div id="formGrid" class="form-grid"></div>
         </section>
@@ -145,7 +144,7 @@
         <section class="detail-panel">
           <div class="detail-head">
             <h3>Justificare</h3>
-            <span class="muted">Recomandarea trebuie sa fie concluzia unei analize, nu doar un pont.</span>
+            <span class="muted">De ce apar aceste recomandari pentru meciul ales.</span>
           </div>
           <div class="analysis-actions">
             <button id="toggleReasonsBtn" class="btn btn-secondary">Afiseaza justificarea</button>
@@ -156,6 +155,6 @@
     </main>
   </div>
 
-  <script type="module" src="./app.mjs?v=2"></script>
+  <script type="module" src="./app.mjs?v=3"></script>
 </body>
 </html>
