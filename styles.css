@@ -115,11 +115,14 @@ body{min-height:100vh}
   margin-top:14px;
 }
 .insight-strip{
-  position:relative;
+  position:fixed;
+  right:max(14px, env(safe-area-inset-right));
+  bottom:max(18px, calc(18px + env(safe-area-inset-bottom)));
+  z-index:920;
   display:flex;
-  align-items:flex-start;
+  flex-direction:column;
+  align-items:flex-end;
   gap:10px;
-  margin-top:12px;
 }
 .model-chip{
   appearance:none;
@@ -131,6 +134,7 @@ body{min-height:100vh}
   font-size:13px;
   font-weight:800;
   cursor:pointer;
+  box-shadow:0 18px 32px rgba(4,9,17,0.28);
 }
 .model-chip span{
   color:#fff;
@@ -659,7 +663,10 @@ select option{
   .app-shell{padding:calc(14px + env(safe-area-inset-top)) 14px 14px}
   .topbar{flex-direction:column;align-items:flex-start}
   .app-tabs{overflow:auto;padding-bottom:2px}
-  .insight-strip{flex-direction:column}
+  .insight-strip{
+    right:12px;
+    bottom:max(14px, calc(14px + env(safe-area-inset-bottom)));
+  }
   .model-popover{max-width:none;width:100%}
   .layout{grid-template-columns:1fr}
   .panel-analysis{grid-column:auto;grid-row:auto}

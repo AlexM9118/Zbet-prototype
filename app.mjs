@@ -53,7 +53,7 @@ function animatePanelSwap(element) {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=4");
+  const registration = await navigator.serviceWorker.register("./sw.js?v=5");
 
   const trackInstalling = (worker) => {
     if (!worker) return;
@@ -253,14 +253,19 @@ function getTopRecommendedMatches() {
     .map((match) => {
       const pair = getRecommendedPair(match);
       const primary = pair?.primary || pair?.candidates?.[0] || bestAvailableMarkets(match)[0] || null;
-      if (!primary || !Number.isFinite(Number(primary?.confidence?.score))) return null;
+      const displayScore = Number.isFinite(Number(primary?.confidence?.score))
+        ? Number(primary.confidence.score)
+        : Number.isFinite(Number(primary?.p))
+          ? Number(primary.p)
+          : null;
+      if (!primary || displayScore == null) return null;
       return {
         match,
         pair: {
           primary,
           secondary: pair?.secondary || null
         },
-        score: Number(primary.confidence.score),
+        score: displayScore,
         day: String(match.day || ""),
         startTime: String(match.startTime || "")
       };
@@ -331,7 +336,7 @@ function renderTopMatches() {
           <div class="top-match-pick-label">${escapeHtml(pair.primary.displayLabel || "Fara recomandare")}</div>
           <div class="top-match-footer">
             <div class="top-match-copy">${escapeHtml(pair.primary.reason || "Selectie rapida pentru analiza detaliata.")}</div>
-            <div class="confidence-pill">${pair.primary?.confidence?.score != null ? pct01(pair.primary.confidence.score) : "—"}</div>
+            <div class="confidence-pill">${Number.isFinite(Number(pair.primary?.confidence?.score)) ? pct01(pair.primary.confidence.score) : Number.isFinite(Number(pair.primary?.p)) ? pct01(pair.primary.p) : "—"}</div>
           </div>
         </div>
       </button>
