@@ -570,10 +570,14 @@ select option{
   margin-top:16px;
 }
 .top-match-card{
+  appearance:none;
+  width:100%;
+  text-align:left;
   padding:16px;
   border-radius:22px;
   background:#101723;
   border:1px solid #223142;
+  color:var(--text);
   cursor:pointer;
   transition:transform 180ms ease, border-color 180ms ease, background 180ms ease;
   animation:contentLift 420ms cubic-bezier(.22,1,.36,1);

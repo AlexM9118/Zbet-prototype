@@ -283,6 +283,7 @@ function scoreMarketFit(candidate) {
     if (candidate.sel === "UNDER" && line >= 2.5 && line <= 3.5) score += 0.06;
     if (candidate.sel === "UNDER" && line >= 4.5) score -= 0.5;
     if (candidate.sel === "UNDER" && line >= 4.5 && candidate.bookOdds < 1.34) score -= 0.18;
+    if (candidate.sel === "UNDER" && line === 4.5) score -= 0.42;
     if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds < 1.30) score -= 0.52;
     if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds >= 1.30 && candidate.bookOdds < 1.38) score -= 0.34;
     if (candidate.sel === "UNDER" && line === 3.5 && candidate.bookOdds >= 1.38 && candidate.bookOdds <= 1.48) score -= 0.18;
@@ -356,7 +357,8 @@ function candidateLineLabel(candidate) {
 function isBlandGoalsPick(candidate) {
   return (
     (candidate.market === "Goals 1.5" && candidate.sel === "OVER") ||
-    (candidate.market === "Goals 3.5" && candidate.sel === "UNDER")
+    (candidate.market === "Goals 3.5" && candidate.sel === "UNDER") ||
+    (candidate.market === "Goals 4.5" && candidate.sel === "UNDER")
   );
 }
 

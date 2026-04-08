@@ -249,7 +249,10 @@ function bestAvailableMarkets(match) {
 }
 
 function getTopRecommendedMatches() {
+  const days = [...new Set(state.matches.map((match) => String(match.day || "")).filter(Boolean))].sort();
+  const currentDay = days[0] || "";
   const items = state.matches
+    .filter((match) => String(match.day || "") === currentDay)
     .map((match) => {
       const pair = getRecommendedPair(match);
       const primary = pair?.primary || pair?.candidates?.[0] || bestAvailableMarkets(match)[0] || null;
