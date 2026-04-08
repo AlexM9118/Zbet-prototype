@@ -53,7 +53,7 @@ function animatePanelSwap(element) {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=3");
+  const registration = await navigator.serviceWorker.register("./sw.js?v=4");
 
   const trackInstalling = (worker) => {
     if (!worker) return;
@@ -105,6 +105,11 @@ function groupMatchesByLeague(matches) {
 function toDayStamp(day) {
   const time = new Date(`${day}T12:00:00`).getTime();
   return Number.isFinite(time) ? time : 0;
+}
+
+function isUpcomingMatch(match) {
+  const start = new Date(String(match?.startTime || "")).getTime();
+  return Number.isFinite(start) && start >= Date.now();
 }
 
 function getCurrentRoundMatches(matches) {
@@ -213,6 +218,15 @@ function renderBacktest() {
       <div class="backtest-market-rate">${item.hitRate == null ? "—" : `${item.hitRate}%`}</div>
     </article>
   `).join("");
+
+  const rateChip = el("modelRateChip");
+  const popoverCopy = el("modelPopoverCopy");
+  if (rateChip) rateChip.textContent = data.hitRate == null ? "—" : `${data.hitRate}%`;
+  if (popoverCopy) {
+    popoverCopy.textContent = data.hitRate == null
+      ? "Nu exista suficient istoric recent pentru o evaluare clara."
+      : `${data.hitRate}% rata recenta, cu ${data.wins} recomandari reusite din ${data.sampleSize} meciuri evaluate.`;
+  }
 }
 
 function getHistEntry(fixtureId) {
@@ -238,7 +252,7 @@ function getTopRecommendedMatches() {
   const items = state.matches
     .map((match) => {
       const pair = getRecommendedPair(match);
-      const primary = pair?.primary || bestAvailableMarkets(match)[0] || null;
+      const primary = pair?.primary || pair?.candidates?.[0] || bestAvailableMarkets(match)[0] || null;
       if (!primary || !Number.isFinite(Number(primary?.confidence?.score))) return null;
       return {
         match,
@@ -253,6 +267,15 @@ function getTopRecommendedMatches() {
     })
     .filter(Boolean)
     .sort((a, b) => {
+      const familyRank = (candidate) => {
+        const market = String(candidate?.market || "");
+        if (market.startsWith("Corners ")) return 3;
+        if (market.startsWith("Cards ")) return 2;
+        if (market === "Double Chance" || market === "1X2") return 1;
+        return 0;
+      };
+      const familyDelta = familyRank(b.pair.primary) - familyRank(a.pair.primary);
+      if (familyDelta !== 0) return familyDelta;
       if (b.score !== a.score) return b.score - a.score;
       const dayCmp = a.day.localeCompare(b.day);
       if (dayCmp !== 0) return dayCmp;
@@ -336,12 +359,10 @@ function renderTopMatches() {
 function renderTabState() {
   const isAnalyzer = state.activeTab === "analyzer";
   const isTop = state.activeTab === "top";
-  const isModel = state.activeTab === "model";
   el("tabAnalyzerBtn").classList.toggle("is-active", isAnalyzer);
   el("tabTopBtn").classList.toggle("is-active", isTop);
-  el("tabModelBtn").classList.toggle("is-active", isModel);
   el("controlPanel").hidden = !isAnalyzer;
-  el("backtestPanel").hidden = !isModel;
+  el("backtestPanel").hidden = true;
   el("analysisPanel").hidden = !isAnalyzer || !state.analysisVisible;
   el("topMatchesPanel").hidden = !isTop;
   if (!isAnalyzer) {
@@ -591,11 +612,18 @@ function bindActions() {
     renderTopMatches();
   });
 
-  el("tabModelBtn").addEventListener("click", () => {
-    state.activeTab = "model";
-    renderTabState();
-    animatePanel(el("backtestPanel"));
-    animatePanelSwap(el("backtestPanel"));
+  el("modelInfoBtn").addEventListener("click", () => {
+    const popover = el("modelPopover");
+    const open = popover.hidden;
+    popover.hidden = !open;
+    el("modelInfoBtn").setAttribute("aria-expanded", String(open));
+  });
+
+  el("modelDetailsBtn").addEventListener("click", () => {
+    const panel = el("backtestPanel");
+    panel.hidden = false;
+    animatePanel(panel);
+    animatePanelSwap(panel);
   });
 
   el("leagueSelect").addEventListener("change", () => {
@@ -688,11 +716,13 @@ async function init() {
   const matchesPayload = await getJson("./data/ui/matches.json");
   const historyPayload = await getJson("./data/ui/history_stats.json");
   const backtestPayload = await getJson("./data/ui/backtest_summary.json");
-  state.matches = (matchesPayload.matches || []).map((match) => ({
-    ...match,
-    home: displayTeamName(match.home),
-    away: displayTeamName(match.away)
-  }));
+  state.matches = (matchesPayload.matches || [])
+    .filter((match) => isUpcomingMatch(match))
+    .map((match) => ({
+      ...match,
+      home: displayTeamName(match.home),
+      away: displayTeamName(match.away)
+    }));
   state.historyByFixtureId = historyPayload.byFixtureId || {};
   state.backtest = backtestPayload || null;
   state.selectedLeague = "";

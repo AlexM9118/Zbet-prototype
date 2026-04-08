@@ -208,41 +208,41 @@ function getMarketProfile(candidate) {
     return {
       category: "GOALS",
       minProb: 0.6,
-      minOdds: 1.28,
+      minOdds: 1.24,
       idealOdds: 1.4,
-      probWeight: 2.5,
-      edgeWeight: 2.2,
+      probWeight: 2.2,
+      edgeWeight: 1.95,
       lowOddsPenalty: 5.2,
       highOddsPenalty: 1.2,
       weakProbPenalty: 2.8,
-      baseBonus: -0.1
+      baseBonus: -0.28
     };
   }
   if (String(candidate.market).startsWith("Corners ")) {
     return {
       category: "CORNERS",
-      minProb: 0.57,
-      minOdds: 1.28,
-      idealOdds: 1.4,
-      probWeight: 2.35,
-      edgeWeight: 2.65,
-      lowOddsPenalty: 3.8,
+      minProb: 0.55,
+      minOdds: 1.22,
+      idealOdds: 1.32,
+      probWeight: 2.7,
+      edgeWeight: 3.05,
+      lowOddsPenalty: 2.6,
       highOddsPenalty: 1.15,
       weakProbPenalty: 2.1,
-      baseBonus: 0.05
+      baseBonus: 0.34
     };
   }
   return {
     category: "CARDS",
-    minProb: 0.56,
-    minOdds: 1.3,
-    idealOdds: 1.42,
-    probWeight: 2.25,
-    edgeWeight: 2.7,
-    lowOddsPenalty: 3.6,
+    minProb: 0.55,
+    minOdds: 1.22,
+    idealOdds: 1.32,
+    probWeight: 2.85,
+    edgeWeight: 3.15,
+    lowOddsPenalty: 2.5,
     highOddsPenalty: 1.05,
     weakProbPenalty: 1.95,
-    baseBonus: 0.04
+    baseBonus: 0.38
   };
 }
 
@@ -299,18 +299,20 @@ function scoreMarketFit(candidate) {
   const cornersMatch = String(candidate.market).match(/^Corners (\d+(?:\.\d+)?)$/);
   if (cornersMatch) {
     const line = Number(cornersMatch[1]);
-    if (line >= 8.5 && line <= 10.5 && candidate.bookOdds >= 1.26) score += 0.16;
-    if (candidate.p >= 0.63 && candidate.edge >= 0.02) score += 0.16;
-    if (candidate.bookOdds < 1.23) score -= 0.12;
+    if (candidate.sel === "OVER") score += 0.18;
+    if (line >= 8.5 && line <= 10.5 && candidate.bookOdds >= 1.22) score += 0.28;
+    if (candidate.p >= 0.6 && candidate.edge >= 0.01) score += 0.24;
+    if (candidate.bookOdds < 1.2) score -= 0.06;
     return score;
   }
 
   const cardsMatch = String(candidate.market).match(/^Cards (\d+(?:\.\d+)?)$/);
   if (cardsMatch) {
     const line = Number(cardsMatch[1]);
-    if (line >= 3.5 && line <= 5.5 && candidate.bookOdds >= 1.28) score += 0.18;
-    if (candidate.p >= 0.62 && candidate.edge >= 0.02) score += 0.18;
-    if (candidate.bookOdds < 1.24) score -= 0.12;
+    if (candidate.sel === "OVER") score += 0.22;
+    if (line >= 3.5 && line <= 5.5 && candidate.bookOdds >= 1.22) score += 0.3;
+    if (candidate.p >= 0.59 && candidate.edge >= 0.01) score += 0.24;
+    if (candidate.bookOdds < 1.2) score -= 0.04;
     return score;
   }
 
@@ -374,7 +376,7 @@ function chooseDisplayedRecommendation(scored) {
   const blandEscape = ordered.find(({ candidate }) => (
     candidate &&
     candidate.bookOdds >= 1.28 &&
-    ["BTTS", "1X2", "DOUBLE_CHANCE"].includes(marketFamily(candidate)) &&
+    ["BTTS", "1X2", "DOUBLE_CHANCE", "CORNERS", "CARDS"].includes(marketFamily(candidate)) &&
     candidate.p >= 0.52
   ))?.candidate || null;
 
@@ -386,7 +388,7 @@ function chooseDisplayedRecommendation(scored) {
     candidate &&
     candidate.bookOdds >= 1.28 &&
     (
-      ["BTTS", "1X2", "DOUBLE_CHANCE"].includes(marketFamily(candidate)) ||
+      ["BTTS", "1X2", "DOUBLE_CHANCE", "CORNERS", "CARDS"].includes(marketFamily(candidate)) ||
       (marketFamily(candidate) === "GOALS" && candidate.market === "Goals 2.5")
     ) &&
     candidate.p >= 0.52
@@ -409,7 +411,7 @@ function chooseDisplayedRecommendation(scored) {
 
   const structuralAlt = ordered.find(({ candidate, score }) => (
     candidate &&
-    ["1X2", "DOUBLE_CHANCE", "BTTS"].includes(marketFamily(candidate)) &&
+    ["1X2", "DOUBLE_CHANCE", "BTTS", "CORNERS", "CARDS"].includes(marketFamily(candidate)) &&
     candidate.bookOdds >= 1.2 &&
     candidate.p >= 0.52 &&
     score >= ordered[0].score - 0.5
@@ -772,10 +774,10 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   const hasStrongAlt = scored.some(({ candidate, score }) => (
     candidate &&
     !isSameRecommendation(candidate, best) &&
-    ["1X2", "DOUBLE_CHANCE", "BTTS"].includes(marketFamily(candidate)) &&
-    candidate.bookOdds >= 1.22 &&
-    candidate.p >= 0.54 &&
-    score >= bestScore - 0.18
+    ["1X2", "DOUBLE_CHANCE", "BTTS", "CORNERS", "CARDS"].includes(marketFamily(candidate)) &&
+    candidate.bookOdds >= 1.2 &&
+    candidate.p >= 0.52 &&
+    score >= bestScore - 0.28
   ));
 
   const shouldSuppressPrimary =
