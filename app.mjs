@@ -53,7 +53,7 @@ function animatePanelSwap(element) {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=5");
+  const registration = await navigator.serviceWorker.register("./sw.js?v=6");
 
   const trackInstalling = (worker) => {
     if (!worker) return;
@@ -370,7 +370,6 @@ function renderTabState() {
   el("tabAnalyzerBtn").classList.toggle("is-active", isAnalyzer);
   el("tabTopBtn").classList.toggle("is-active", isTop);
   el("controlPanel").hidden = !isAnalyzer;
-  el("backtestPanel").hidden = true;
   el("analysisPanel").hidden = !isAnalyzer || !state.analysisVisible;
   el("topMatchesPanel").hidden = !isTop;
   if (!isAnalyzer) {
@@ -621,17 +620,28 @@ function bindActions() {
   });
 
   el("modelInfoBtn").addEventListener("click", () => {
-    const popover = el("modelPopover");
-    const open = popover.hidden;
-    popover.hidden = !open;
-    el("modelInfoBtn").setAttribute("aria-expanded", String(open));
+    el("modelSummaryModal").hidden = false;
   });
 
   el("modelDetailsBtn").addEventListener("click", () => {
-    const panel = el("backtestPanel");
-    panel.hidden = false;
-    animatePanel(panel);
-    animatePanelSwap(panel);
+    el("modelSummaryModal").hidden = true;
+    el("modelDetailsModal").hidden = false;
+  });
+
+  el("closeModelSummaryBtn").addEventListener("click", () => {
+    el("modelSummaryModal").hidden = true;
+  });
+
+  el("closeModelDetailsBtn").addEventListener("click", () => {
+    el("modelDetailsModal").hidden = true;
+  });
+
+  el("modelSummaryBackdrop").addEventListener("click", () => {
+    el("modelSummaryModal").hidden = true;
+  });
+
+  el("modelDetailsBackdrop").addEventListener("click", () => {
+    el("modelDetailsModal").hidden = true;
   });
 
   el("leagueSelect").addEventListener("change", () => {
