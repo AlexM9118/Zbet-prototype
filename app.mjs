@@ -53,7 +53,7 @@ function animatePanelSwap(element) {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=6");
+  const registration = await navigator.serviceWorker.register("./sw.js?v=7");
 
   const trackInstalling = (worker) => {
     if (!worker) return;
