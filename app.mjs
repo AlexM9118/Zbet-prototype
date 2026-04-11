@@ -19,6 +19,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
+const APP_VERSION = "8";
 
 const el = (id) => document.getElementById(id);
 
@@ -53,7 +54,7 @@ function animatePanelSwap(element) {
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
-  const registration = await navigator.serviceWorker.register("./sw.js?v=7");
+  const registration = await navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`);
 
   const trackInstalling = (worker) => {
     if (!worker) return;
@@ -75,9 +76,43 @@ async function registerServiceWorker() {
     showUpdateBanner();
   }
 
+  registration.update().catch(() => {});
+
+  window.addEventListener("pageshow", () => {
+    registration.update().catch(() => {});
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      registration.update().catch(() => {});
+    }
+  });
+
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     window.localStorage.removeItem(UPDATE_BANNER_DISMISSED_KEY);
     window.location.reload();
+  });
+}
+
+function bindPress(id, handler) {
+  const node = el(id);
+  if (!node) return;
+
+  let touchHandled = false;
+
+  node.addEventListener("pointerup", (event) => {
+    if (event.pointerType === "mouse") return;
+    touchHandled = true;
+    event.preventDefault();
+    handler(event);
+    window.setTimeout(() => {
+      touchHandled = false;
+    }, 0);
+  });
+
+  node.addEventListener("click", (event) => {
+    if (touchHandled) return;
+    handler(event);
   });
 }
 
@@ -605,7 +640,7 @@ function populateControls() {
 }
 
 function bindActions() {
-  el("tabAnalyzerBtn").addEventListener("click", () => {
+  bindPress("tabAnalyzerBtn", () => {
     state.activeTab = "analyzer";
     renderTabState();
     formatLeagueMatches();
@@ -613,26 +648,26 @@ function bindActions() {
     renderTopMatches();
   });
 
-  el("tabTopBtn").addEventListener("click", () => {
+  bindPress("tabTopBtn", () => {
     state.activeTab = "top";
     renderTabState();
     renderTopMatches();
   });
 
-  el("modelInfoBtn").addEventListener("click", () => {
+  bindPress("modelInfoBtn", () => {
     el("modelSummaryModal").hidden = false;
   });
 
-  el("modelDetailsBtn").addEventListener("click", () => {
+  bindPress("modelDetailsBtn", () => {
     el("modelSummaryModal").hidden = true;
     el("modelDetailsModal").hidden = false;
   });
 
-  el("closeModelSummaryBtn").addEventListener("click", () => {
+  bindPress("closeModelSummaryBtn", () => {
     el("modelSummaryModal").hidden = true;
   });
 
-  el("closeModelDetailsBtn").addEventListener("click", () => {
+  bindPress("closeModelDetailsBtn", () => {
     el("modelDetailsModal").hidden = true;
   });
 
@@ -669,7 +704,7 @@ function bindActions() {
     renderSearchResults();
   });
 
-  el("searchToggleBtn").addEventListener("click", () => {
+  bindPress("searchToggleBtn", () => {
     const overlay = el("searchOverlay");
     overlay.hidden = !overlay.hidden;
     if (!overlay.hidden) {
@@ -681,7 +716,7 @@ function bindActions() {
     }
   });
 
-  el("analyzeMatchBtn").addEventListener("click", () => {
+  bindPress("analyzeMatchBtn", () => {
     if (!state.selectedFixtureId) return;
     state.activeTab = "analyzer";
     state.leagueMode = false;
@@ -691,7 +726,7 @@ function bindActions() {
     renderAnalysis();
   });
 
-  el("analyzeLeagueBtn").addEventListener("click", () => {
+  bindPress("analyzeLeagueBtn", () => {
     if (!state.selectedLeague) return;
     state.leagueMode = true;
     state.analysisVisible = false;
@@ -699,25 +734,25 @@ function bindActions() {
     renderAnalysis();
   });
 
-  el("toggleMarketsBtn").addEventListener("click", () => {
+  bindPress("toggleMarketsBtn", () => {
     const panel = el("marketsPanel");
     panel.hidden = !panel.hidden;
     el("toggleMarketsBtn").textContent = panel.hidden ? "Afiseaza toate pietele" : "Ascunde toate pietele";
   });
 
-  el("toggleFormBtn").addEventListener("click", () => {
+  bindPress("toggleFormBtn", () => {
     const panel = el("formPanel");
     panel.hidden = !panel.hidden;
     el("toggleFormBtn").textContent = panel.hidden ? "Afiseaza forma si comparatia" : "Ascunde forma si comparatia";
   });
 
-  el("toggleReasonsBtn").addEventListener("click", () => {
+  bindPress("toggleReasonsBtn", () => {
     const panel = el("reasonList");
     panel.hidden = !panel.hidden;
     el("toggleReasonsBtn").textContent = panel.hidden ? "Afiseaza justificarea" : "Ascunde justificarea";
   });
 
-  el("applyUpdateBtn").addEventListener("click", () => {
+  bindPress("applyUpdateBtn", () => {
     if (pendingWorker) {
       hideUpdateBanner();
       window.localStorage.setItem(UPDATE_BANNER_DISMISSED_KEY, "true");
