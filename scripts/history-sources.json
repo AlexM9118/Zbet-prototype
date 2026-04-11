@@ -1,0 +1,114 @@
+{
+  "lookback": 5,
+  "sources": [
+    { "id": "E0",  "name": "England - Premier League",         "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/E0.csv" },
+    { "id": "E1",  "name": "England - Championship",           "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/E1.csv" },
+
+    { "id": "SC0", "name": "Scotland - Premiership",           "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/SC0.csv" },
+    { "id": "SC1", "name": "Scotland - Division 1",            "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/SC1.csv" },
+    { "id": "SC2", "name": "Scotland - Division 2",            "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/SC2.csv" },
+    { "id": "SC3", "name": "Scotland - Division 3",            "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/SC3.csv" },
+    { "id": "ARG", "name": "Argentina - Liga Profesional",     "type": "csv", "url": "https://www.football-data.co.uk/new/ARG.csv" },
+    { "id": "BRA", "name": "Brazil - Brasileiro Serie A",      "type": "csv", "url": "https://www.football-data.co.uk/new/BRA.csv" },
+    { "id": "CHN", "name": "China - Chinese Super League",     "type": "csv", "url": "https://www.football-data.co.uk/new/CHN.csv" },
+    { "id": "FIN", "name": "Finland - Veikkausliiga",          "type": "csv", "url": "https://www.football-data.co.uk/new/FIN.csv" },
+    { "id": "IRL", "name": "Ireland - Premier Division",       "type": "csv", "url": "https://www.football-data.co.uk/new/IRL.csv" },
+    { "id": "JPN", "name": "Japan - J.League",                 "type": "csv", "url": "https://www.football-data.co.uk/new/JPN.csv" },
+    { "id": "MEX", "name": "Mexico - Liga MX",                 "type": "csv", "url": "https://www.football-data.co.uk/new/MEX.csv" },
+
+    { "id": "D1",  "name": "Germany - Bundesliga",             "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/D1.csv" },
+    { "id": "D2",  "name": "Germany - Bundesliga 2",           "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/D2.csv" },
+
+    { "id": "I1",  "name": "Italy - Serie A",                  "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/I1.csv" },
+    { "id": "I2",  "name": "Italy - Serie B",                  "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/I2.csv" },
+
+    { "id": "SP1", "name": "Spain - LaLiga",                   "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/SP1.csv" },
+    { "id": "SP2", "name": "Spain - LaLiga 2",                 "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/SP2.csv" },
+
+    { "id": "F1",  "name": "France - Ligue 1",                 "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/F1.csv" },
+    { "id": "F2",  "name": "France - Ligue 2",                 "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/F2.csv" },
+
+    { "id": "B1",  "name": "Belgium - First Division A",       "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/B1.csv" },
+    { "id": "N1",  "name": "Netherlands - Eredivisie",         "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/N1.csv" },
+    { "id": "N2",  "name": "Netherlands - Eerste Divisie",     "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/netherlands/2023-24_nl2.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/netherlands/2024-25_nl2.txt"
+    ] },
+    { "id": "P1",  "name": "Portugal - Primeira Liga",         "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/P1.csv" },
+
+    { "id": "T1",  "name": "Turkey - Super Lig",               "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/T1.csv" },
+    { "id": "G1",  "name": "Greece - Super League",            "type": "csv", "url": "https://www.football-data.co.uk/mmz4281/2526/G1.csv" },
+
+    { "id": "AUT", "name": "Austria - Bundesliga",             "type": "csv", "url": "https://www.football-data.co.uk/new/AUT.csv" },
+    { "id": "BUL", "name": "Bulgaria - Parva Liga",            "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/bulgaria/2023-24_bg1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/bulgaria/2024-25_bg1.txt"
+    ] },
+    { "id": "CRO", "name": "Croatia - HNL",                    "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/croatia/2023-24_hr1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/croatia/2024-25_hr1.txt"
+    ] },
+    { "id": "CZE", "name": "Czechia - 1. Liga",                "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/czech-republic/2023-24_cz1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/czech-republic/2024-25_cz1.txt"
+    ] },
+    { "id": "CYP", "name": "Cyprus - 1st Division",            "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/cyprus/2023-24_cy1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/cyprus/2024-25_cy1.txt"
+    ] },
+    { "id": "DEN", "name": "Denmark - Superliga",              "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/denmark/2023-24_dk1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/denmark/2024-25_dk1.txt"
+    ] },
+    { "id": "HUN", "name": "Hungary - NB I",                   "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/hungary/2023-24_hu1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/hungary/2024-25_hu1.txt"
+    ] },
+    { "id": "NOR", "name": "Norway - Eliteserien",             "type": "csv", "url": "https://www.football-data.co.uk/new/NOR.csv" },
+    { "id": "POL", "name": "Poland - Ekstraklasa",             "type": "csv", "url": "https://www.football-data.co.uk/new/POL.csv" },
+    { "id": "P2",  "name": "Poland - I Liga",                  "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/poland/2024-25_pl2.txt"
+    ] },
+    { "id": "ROU", "name": "Romania - Liga 1",                 "type": "csv", "url": "https://www.football-data.co.uk/new/ROU.csv" },
+    { "id": "RUS", "name": "Russia - Premier League",          "type": "csv", "url": "https://www.football-data.co.uk/new/RUS.csv" },
+    { "id": "SER", "name": "Serbia - Superliga",               "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/serbia/2023-24_rs1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/serbia/2024-25_rs1.txt"
+    ] },
+    { "id": "SVK", "name": "Slovakia - Superliga",             "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/slovakia/2023-24_sk1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/slovakia/2024-25_sk1.txt"
+    ] },
+    { "id": "SVN", "name": "Slovenia - PrvaLiga",              "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/slovenia/2023-24_si1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/slovenia/2024-25_si1.txt"
+    ] },
+    { "id": "SWE", "name": "Sweden - Allsvenskan",             "type": "csv", "url": "https://www.football-data.co.uk/new/SWE.csv" },
+    { "id": "SWZ", "name": "Switzerland - Super League",       "type": "csv", "url": "https://www.football-data.co.uk/new/SWZ.csv" },
+    { "id": "SA1", "name": "Saudi Arabia - Saudi Pro League",  "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/world/master/middle-east/saudi-arabia/2024-25_sa1.txt"
+    ] },
+    { "id": "UKR", "name": "Ukraine - Premier League",         "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/europe/master/ukraine/2023-24_ua1.txt",
+      "https://raw.githubusercontent.com/openfootball/europe/master/ukraine/2024-25_ua1.txt"
+    ] },
+
+    { "id": "UEFA", "name": "International Clubs - UEFA Competitions", "type": "openfootball", "urls": [
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2020-21/el.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2021-22/cl.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2021-22/el.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2021-22/conf.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2022-23/cl.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2022-23/el.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2022-23/conf.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2023-24/cl.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2023-24/el.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2023-24/conf.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2024-25/cl.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2024-25/el.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2024-25/conf.txt",
+      "https://raw.githubusercontent.com/openfootball/champions-league/master/2025-26/cl.txt"
+    ] },
+    { "id": "USA", "name": "USA - MLS",                        "type": "csv", "url": "https://www.football-data.co.uk/new/USA.csv" }
+  ]
+}

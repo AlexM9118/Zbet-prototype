@@ -1,0 +1,174 @@
+name: ZBet - OddsPapi run jobs
+
+on:
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "What to run"
+        required: true
+        default: "odds"
+        type: choice
+        options:
+          - bookmakers
+          - markets
+          - tournaments
+          - odds
+          - build_ui
+          - fixtures_smoke
+      tournament_ids:
+        description: "Comma-separated tournamentIds (for odds job)"
+        required: false
+        default: "17,18,23,34,182,35,44,53,8,54,152,37,38,36,52,45,185,203,7,679,34480,40,20,242,247,210,215,238,39,170,172,187,202,205,211,212,218,229,691,46,155,325,206,41,649,192,196,131,955,27466"
+      bookmaker:
+        description: "Bookmaker slug (for odds job)"
+        required: false
+        default: "superbet"
+      verbosity:
+        description: "Verbosity level (for odds job)"
+        required: false
+        default: "2"
+      odds_format:
+        description: "decimal or american (for odds job)"
+        required: false
+        default: "decimal"
+      tournament_id_single:
+        description: "Single tournamentId (for fixtures_smoke)"
+        required: false
+        default: "17"
+      from:
+        description: "FROM ISO (for fixtures_smoke)"
+        required: false
+        default: "2026-03-20T00:00:00Z"
+      to:
+        description: "TO ISO (for fixtures_smoke)"
+        required: false
+        default: "2026-03-22T00:00:00Z"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ensure data folder exists
+        run: mkdir -p data
+
+      # ----------------------------
+      # OddsPapi jobs
+      # ----------------------------
+      - name: Run bookmakers
+        if: ${{ inputs.job == 'bookmakers' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+        run: node scripts/oddspapi-fetch-bookmakers.js
+
+      - name: Run tournaments
+        if: ${{ inputs.job == 'tournaments' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+        run: node scripts/oddspapi-fetch-tournaments.js
+
+      - name: Run markets
+        if: ${{ inputs.job == 'markets' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+          LANGUAGE: "en"
+        run: node scripts/oddspapi-fetch-markets.js
+
+      - name: Run odds-by-tournaments (batched)
+        if: ${{ inputs.job == 'odds' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+          TOURNAMENT_IDS: ${{ inputs.tournament_ids }}
+          BOOKMAKER: ${{ inputs.bookmaker }}
+          VERBOSITY: ${{ inputs.verbosity }}
+          ODDS_FORMAT: ${{ inputs.odds_format }}
+        run: node scripts/oddspapi-fetch-odds-by-tournaments.js
+
+      # ----------------------------
+      # Build UI data (normalize odds) — no API calls
+      # ----------------------------
+      - name: Build UI data (normalize OddsPapi) - after odds
+        if: ${{ inputs.job == 'odds' }}
+        run: node scripts/build-ui-data-from-oddspapi.js
+
+      - name: Build UI data (normalize OddsPapi) - NO API
+        if: ${{ inputs.job == 'build_ui' }}
+        run: node scripts/build-ui-data-from-oddspapi.js
+
+      # ----------------------------
+      # Build UI history stats (from football-data stats) — no API calls
+      # ----------------------------
+      - name: Build UI history stats (from football-data stats)
+        if: ${{ inputs.job == 'odds' || inputs.job == 'build_ui' }}
+        run: node scripts/build-ui-history-stats.js
+
+      - name: Build history archive (recent recommendations)
+        if: ${{ inputs.job == 'odds' || inputs.job == 'build_ui' }}
+        run: node scripts/build-history-archive.js
+
+      - name: Build backtest summary
+        if: ${{ inputs.job == 'odds' || inputs.job == 'build_ui' }}
+        run: node scripts/build-backtest-summary.mjs
+
+      # ----------------------------
+      # Fixtures smoke test (finished) - optional
+      # ----------------------------
+      - name: Fixtures smoke test (finished)
+        if: ${{ inputs.job == 'fixtures_smoke' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+          TOURNAMENT_ID: ${{ inputs.tournament_id_single }}
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          STATUS_ID: "2"
+        run: node scripts/oddspapi-fixtures-smoke.js
+
+      # ----------------------------
+      # Debug
+      # ----------------------------
+      - name: List generated files (debug)
+        run: |
+          echo "---- data/ui ----"
+          ls -la data/ui || true
+
+      # ----------------------------
+      # Commit outputs
+      # ----------------------------
+      - name: Commit outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # bookmakers / tournaments
+          git add data/oddspapi_bookmakers_raw.txt data/oddspapi_bookmakers.json || true
+          git add data/oddspapi_markets_raw.txt data/oddspapi_markets.json || true
+          git add data/oddspapi_tournaments_raw.txt data/oddspapi_tournaments.json || true
+
+          # odds outputs
+          git add data/oddspapi_odds.json data/oddspapi_odds_index.json || true
+          git add data/oddspapi_odds_parts || true
+
+          # UI normalized outputs
+          git add data/ui || true
+
+          # fixtures smoke outputs
+          git add data/oddspapi_fixtures_smoke_raw.txt data/oddspapi_fixtures_smoke.json || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "ZBet OddsPapi data update"
+          git push

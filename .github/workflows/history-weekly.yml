@@ -1,0 +1,53 @@
+name: ZBet daily history update
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 6 * * *"  # Daily 06:20 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm install
+        # npm ci requires package-lock.json; if you don't have it yet, use npm install
+        # We'll fix below.
+
+      - name: Build history + team stats
+        run: node scripts/build-history-from-sources.js
+
+      - name: Build UI history stats
+        run: node scripts/build-ui-history-stats.js
+
+      - name: Build history archive
+        run: node scripts/build-history-archive.js
+
+      - name: Build backtest summary
+        run: node scripts/build-backtest-summary.mjs
+
+      - name: Commit outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/history data/stats
+          git add data/ui/history_stats.json data/ui/history_archive_index.json data/ui/backtest_summary.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "ZBet daily history update"
+          git push

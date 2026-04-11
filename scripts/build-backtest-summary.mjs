@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
-const SOURCE_HISTORY_DIR = path.resolve(ROOT, "..", "data", "history");
+const SOURCE_HISTORY_DIR = path.resolve(ROOT, "data", "history");
 const OUTPUT_FILE = path.resolve(ROOT, "data", "ui", "backtest_summary.json");
 
 const { estGoals, probBTTS, prob1X2, probTotalOver } = await import(pathToFileURL(path.resolve(ROOT, "js", "models.mjs")).href);

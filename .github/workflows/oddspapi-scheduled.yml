@@ -1,0 +1,104 @@
+name: ZBet scheduled OddsPapi refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "10 6 * * 2,4,6" # Tue/Thu/Sat 06:10 UTC
+    - cron: "40 6 * * 0" # Sun 06:40 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zbet-oddspapi-scheduled
+  cancel-in-progress: false
+
+jobs:
+  odds_refresh:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '10 6 * * 2,4,6' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ensure data folder exists
+        run: mkdir -p data
+
+      - name: Run odds-by-tournaments (batched)
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+          BOOKMAKER: "superbet"
+          VERBOSITY: "2"
+          ODDS_FORMAT: "decimal"
+        run: node scripts/oddspapi-fetch-odds-by-tournaments.js
+
+      - name: Build UI data (normalize OddsPapi)
+        run: node scripts/build-ui-data-from-oddspapi.js
+
+      - name: Build UI history stats
+        run: node scripts/build-ui-history-stats.js
+
+      - name: Build history archive
+        run: node scripts/build-history-archive.js
+
+      - name: Build backtest summary
+        run: node scripts/build-backtest-summary.mjs
+
+      - name: Commit outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/oddspapi_odds.json data/oddspapi_odds_index.json || true
+          git add data/oddspapi_odds_parts || true
+          git add data/ui || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "ZBet scheduled OddsPapi refresh"
+          git push
+
+  tournament_catalog_refresh:
+    if: ${{ github.event.schedule == '40 6 * * 0' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ensure data folder exists
+        run: mkdir -p data
+
+      - name: Refresh tournament catalog
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+        run: node scripts/oddspapi-fetch-tournaments.js
+
+      - name: Commit tournament catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/oddspapi_tournaments_raw.txt data/oddspapi_tournaments.json || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "ZBet scheduled tournament refresh"
+          git push

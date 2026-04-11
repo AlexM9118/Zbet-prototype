@@ -7,6 +7,7 @@ const TEAM_DISPLAY_ALIASES = {
 
 const state = {
   matches: [],
+  catalogLeagues: [],
   historyByFixtureId: {},
   backtest: null,
   selectedLeague: "",
@@ -19,7 +20,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "8";
+const APP_VERSION = "9";
 
 const el = (id) => document.getElementById(id);
 
@@ -137,6 +138,31 @@ function groupMatchesByLeague(matches) {
   return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label));
 }
 
+function getLeagueCatalog() {
+  const grouped = groupMatchesByLeague(state.matches);
+  const groupedMap = new Map(grouped.map((league) => [league.id, league]));
+
+  const catalog = Array.isArray(state.catalogLeagues) && state.catalogLeagues.length
+    ? state.catalogLeagues.map((league) => {
+      const id = String(league.id ?? league.tournamentId ?? "");
+      const fallbackLabel = [league.categoryName, league.name].filter(Boolean).join(" • ") || `Competitie ${id}`;
+      return {
+        id,
+        label: fallbackLabel,
+        matches: groupedMap.get(id)?.matches || []
+      };
+    })
+    : grouped;
+
+  for (const league of grouped) {
+    if (!catalog.some((entry) => entry.id === league.id)) {
+      catalog.push(league);
+    }
+  }
+
+  return catalog.sort((a, b) => a.label.localeCompare(b.label));
+}
+
 function toDayStamp(day) {
   const time = new Date(`${day}T12:00:00`).getTime();
   return Number.isFinite(time) ? time : 0;
@@ -176,7 +202,7 @@ function renderSearchResults() {
   }
 
   const baseMatches = state.selectedLeague
-    ? (groupMatchesByLeague(state.matches).find((league) => league.id === state.selectedLeague)?.matches || [])
+    ? (getLeagueCatalog().find((league) => league.id === state.selectedLeague)?.matches || [])
     : state.matches;
 
   const results = baseMatches
@@ -421,7 +447,7 @@ function formatLeagueMatches() {
   }
 
   panel.hidden = false;
-  const selected = groupMatchesByLeague(state.matches).find((league) => league.id === state.selectedLeague);
+  const selected = getLeagueCatalog().find((league) => league.id === state.selectedLeague);
   const list = el("leagueMatches");
   const subtitle = el("leagueSubtitle");
   const count = el("leagueMatchCount");
@@ -436,8 +462,15 @@ function formatLeagueMatches() {
 
   const roundMatches = getCurrentRoundMatches(selected.matches);
   title.textContent = selected.label;
-  subtitle.textContent = "Meciurile disponibile din etapa curenta.";
+  subtitle.textContent = roundMatches.length
+    ? "Meciurile disponibile din etapa curenta."
+    : "Momentan nu exista meciuri viitoare pentru competitia selectata.";
   count.textContent = `${roundMatches.length} meciuri`;
+
+  if (!roundMatches.length) {
+    list.innerHTML = `<div class="reason-item">Nu exista inca meciuri viitoare in etapa curenta pentru aceasta competitie.</div>`;
+    return;
+  }
 
   list.innerHTML = roundMatches.map((match) => {
     const active = String(match.fixtureId) === String(state.selectedFixtureId) ? " active" : "";
@@ -606,7 +639,7 @@ function syncSelectors() {
 }
 
 function populateControls() {
-  const leagues = groupMatchesByLeague(state.matches);
+  const leagues = getLeagueCatalog();
   el("leagueSelect").innerHTML = [
     `<option value="">Alege competitia</option>`,
     ...leagues.map((league) => `<option value="${league.id}">${league.label}</option>`)
@@ -618,6 +651,7 @@ function populateControls() {
     el("matchSelect").innerHTML = `<option value="">Alege mai intai competitia</option>`;
     el("matchSelect").value = "";
     el("matchSelectHint").textContent = "Selecteaza o competitie ca sa vezi meciurile din etapa curenta.";
+    syncSelectors();
     return;
   }
 
@@ -626,6 +660,16 @@ function populateControls() {
   const optionMatches = selectedMatch && !roundMatches.some((match) => String(match.fixtureId) === String(selectedMatch.fixtureId))
     ? [selectedMatch, ...roundMatches]
     : roundMatches;
+
+  if (!optionMatches.length) {
+    el("matchSelect").innerHTML = `<option value="">Momentan nu exista meciuri disponibile</option>`;
+    el("matchSelect").value = "";
+    el("matchSelectHint").textContent = "Competitia este disponibila in catalog, dar momentan nu are meciuri viitoare in etapa curenta.";
+    state.selectedFixtureId = "";
+    syncSelectors();
+    return;
+  }
+
   el("matchSelect").innerHTML = [
     `<option value="">Alege meciul</option>`,
     ...optionMatches.map((match) => `<option value="${String(match.fixtureId)}">${displayTeamName(match.home)} vs ${displayTeamName(match.away)}</option>`)
@@ -766,9 +810,11 @@ function bindActions() {
 }
 
 async function init() {
+  const leaguesPayload = await getJson("./data/ui/leagues.json").catch(() => ({ leagues: [] }));
   const matchesPayload = await getJson("./data/ui/matches.json");
   const historyPayload = await getJson("./data/ui/history_stats.json");
   const backtestPayload = await getJson("./data/ui/backtest_summary.json");
+  state.catalogLeagues = leaguesPayload.leagues || [];
   state.matches = (matchesPayload.matches || [])
     .filter((match) => isUpcomingMatch(match))
     .map((match) => ({
