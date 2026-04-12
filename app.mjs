@@ -20,7 +20,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "10";
+const APP_VERSION = "11";
 
 const el = (id) => document.getElementById(id);
 
@@ -302,7 +302,7 @@ function getRecommendedPair(match) {
 function bestAvailableMarkets(match) {
   const candidates = getCandidatesForMatch(match, getHistEntry)
     .filter((entry) => Number.isFinite(Number(entry?.bookOdds)))
-    .sort((a, b) => (b?.confidence?.score || 0) - (a?.confidence?.score || 0));
+    .sort((a, b) => (Number(b?.p) || 0) - (Number(a?.p) || 0));
   return candidates.slice(0, 18);
 }
 
@@ -319,7 +319,7 @@ function getTopRecommendedMatches() {
         : Number.isFinite(Number(primary?.p))
           ? Number(primary.p)
           : null;
-      if (!primary || displayScore == null) return null;
+      if (!primary || displayScore == null || !Number.isFinite(Number(primary?.bookOdds))) return null;
       return {
         match,
         pair: {
@@ -332,6 +332,7 @@ function getTopRecommendedMatches() {
       };
     })
     .filter(Boolean)
+    .filter(({ pair }) => Number(pair.primary.bookOdds) >= 1.2 && Number(pair.primary.bookOdds) <= 1.5 && Number(pair.primary.p || 0) >= 0.75)
     .sort((a, b) => {
       const familyRank = (candidate) => {
         const market = String(candidate?.market || "");
@@ -398,6 +399,7 @@ function renderTopMatches() {
         <div class="top-match-pick">
           <div class="top-match-kicker">Pronostic recomandat</div>
           <div class="top-match-pick-label">${escapeHtml(pair.primary.displayLabel || "Fara recomandare")}</div>
+          <div class="top-match-odds">Cota ${escapeHtml(fmtOdds(pair.primary.bookOdds))}</div>
           <div class="top-match-footer">
             <div class="top-match-copy">${escapeHtml(pair.primary.reason || "Selectie rapida pentru analiza detaliata.")}</div>
             <div class="confidence-pill">${Number.isFinite(Number(pair.primary?.confidence?.score)) ? pct01(pair.primary.confidence.score) : Number.isFinite(Number(pair.primary?.p)) ? pct01(pair.primary.p) : "—"}</div>
@@ -525,6 +527,11 @@ function renderPick(container, pick, fallbackTitle) {
   const probability = Number(pick.confidence?.score);
   const probabilityPct = Number.isFinite(probability) ? Math.round(probability * 100) : null;
   const barWidth = probabilityPct == null ? 50 : Math.max(10, Math.min(100, probabilityPct));
+  const premiumNote = pick.isPremiumFit
+    ? "Se incadreaza in banda premium: cota 1.20-1.50 si minim 75% sanse estimate."
+    : pick.isSoftFit
+      ? "Este cea mai apropiata varianta curata disponibila in banda de cote pentru acest meci."
+      : null;
   container.innerHTML = `
     <div class="pick-label">${pick.displayLabel || fallbackTitle}</div>
     <div class="pick-row">
@@ -536,6 +543,7 @@ function renderPick(container, pick, fallbackTitle) {
       <span class="pick-meter-bad" style="width:${100 - barWidth}%"></span>
     </div>
     <div class="pick-copy">${pick.reason || "Pronostic selectat pe baza formei, contextului si pietei disponibile."}</div>
+    ${premiumNote ? `<div class="pick-note">${premiumNote}</div>` : ""}
   `;
 }
 
@@ -543,8 +551,12 @@ function renderMarkets(match, pair) {
   const candidates = bestAvailableMarkets(match);
   const grid = el("marketsGrid");
   const selectedLabels = new Set([pair?.primary?.displayLabel, pair?.secondary?.displayLabel].filter(Boolean));
+  if (!candidates.length) {
+    grid.innerHTML = `<div class="reason-item">Momentan nu exista suficiente piete curate pentru acest meci.</div>`;
+    return;
+  }
   grid.innerHTML = candidates.map((item) => {
-    const probability = Number(item?.confidence?.score);
+    const probability = Number.isFinite(Number(item?.confidence?.score)) ? Number(item.confidence.score) : Number(item?.p);
     const width = Number.isFinite(probability) ? Math.max(8, Math.min(100, probability * 100)) : 8;
     return `
       <article class="market-card">

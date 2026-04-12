@@ -1,6 +1,9 @@
 import {
   SAFE_THRESHOLD,
   MAX_TICKET_LEG_ODDS,
+  MIN_USER_RECO_ODDS,
+  MAX_USER_RECO_ODDS,
+  MIN_USER_RECO_PROBABILITY,
   MIN_MATCH_RECO_ODDS,
   IDEAL_MATCH_RECO_ODDS,
   MIN_PRIMARY_EDGE,
@@ -357,6 +360,29 @@ function isBlandGoalsPick(candidate) {
 
 function isDiscouragedPick(candidate) {
   return candidate?.market === "BTTS" && candidate?.sel === "NO";
+}
+
+function isInUserOddsBand(candidate) {
+  return Number.isFinite(candidate?.bookOdds) && candidate.bookOdds >= MIN_USER_RECO_ODDS && candidate.bookOdds <= MAX_USER_RECO_ODDS;
+}
+
+function isPremiumUserCandidate(candidate) {
+  return Boolean(
+    candidate &&
+    isInUserOddsBand(candidate) &&
+    candidate.p >= MIN_USER_RECO_PROBABILITY &&
+    !isDiscouragedPick(candidate) &&
+    !isBlandGoalsPick(candidate)
+  );
+}
+
+function isSoftUserCandidate(candidate) {
+  return Boolean(
+    candidate &&
+    isInUserOddsBand(candidate) &&
+    candidate.p >= 0.68 &&
+    !isDiscouragedPick(candidate)
+  );
 }
 
 function chooseDisplayedRecommendation(scored) {
@@ -755,7 +781,14 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
     })
     .sort((a, b) => b.score - a.score || b.candidate.p - a.candidate.p || b.candidate.edge - a.candidate.edge);
 
-  const best = chooseDisplayedRecommendation(scored) || scored[0]?.candidate || scoringPool[0] || candidates[0];
+  const premiumPool = scored.filter(({ candidate }) => isPremiumUserCandidate(candidate));
+  const softPool = scored.filter(({ candidate }) => isSoftUserCandidate(candidate));
+  const best = chooseDisplayedRecommendation(premiumPool.length ? premiumPool : scored)
+    || premiumPool[0]?.candidate
+    || softPool[0]?.candidate
+    || scored[0]?.candidate
+    || scoringPool[0]
+    || candidates[0];
   if (!best) return { primary: null, secondary: null, candidates: scored.map((entry) => entry.candidate) };
   const bestScore = scored.find(({ candidate }) => isSameRecommendation(candidate, best))?.score ?? scored[0]?.score ?? 0;
   const hasStrongAlt = scored.some(({ candidate, score }) => (
@@ -768,9 +801,14 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   ));
 
   const shouldSuppressPrimary =
-    bestScore < MIN_PRIMARY_SCORE ||
-    best.p < MIN_PRIMARY_PROBABILITY ||
-    best.edge < MIN_PRIMARY_EDGE ||
+    (
+      !isSoftUserCandidate(best) &&
+      (
+        bestScore < MIN_PRIMARY_SCORE ||
+        best.p < MIN_PRIMARY_PROBABILITY ||
+        best.edge < MIN_PRIMARY_EDGE
+      )
+    ) ||
     (isDiscouragedPick(best) && (best.edge < 0.08 || best.p < 0.66)) ||
     (isBlandGoalsPick(best) && !hasStrongAlt && (best.edge < 0.07 || best.bookOdds < 1.34));
 
@@ -783,6 +821,8 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   }
 
   best.confidence = getRecommendationConfidence(best);
+  best.isPremiumFit = isPremiumUserCandidate(best);
+  best.isSoftFit = isSoftUserCandidate(best);
 
   const secondary = pickSecondaryRecommendation(scored, best);
   if (secondary) {
@@ -800,6 +840,8 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
       };
     }
     secondary.confidence = getRecommendationConfidence(secondary);
+    secondary.isPremiumFit = isPremiumUserCandidate(secondary);
+    secondary.isSoftFit = isSoftUserCandidate(secondary);
   }
 
   return {
