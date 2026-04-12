@@ -385,6 +385,14 @@ function isSoftUserCandidate(candidate) {
   );
 }
 
+function isBandFallbackCandidate(candidate) {
+  return Boolean(
+    candidate &&
+    isInUserOddsBand(candidate) &&
+    !isDiscouragedPick(candidate)
+  );
+}
+
 function chooseDisplayedRecommendation(scored) {
   const ordered = (scored || []).filter(Boolean);
   const best = ordered[0]?.candidate || null;
@@ -518,6 +526,18 @@ function pickSecondaryRecommendation(scored, primary) {
   ))?.candidate || null : null;
 
   if (oneXTwoAlt) return oneXTwoAlt;
+
+  const valueUpgradeAlt = scored.find(({ candidate, score }) => (
+    isPlanBEligible(candidate, score, "safe") &&
+    !isInUserOddsBand(candidate) &&
+    candidate.bookOdds >= Math.max(primary.bookOdds + 0.04, MAX_USER_RECO_ODDS + 0.02) &&
+    candidate.bookOdds <= 1.85 &&
+    candidate.p >= 0.54 &&
+    !isDiscouragedPick(candidate) &&
+    score >= primaryScore - 0.9
+  ))?.candidate || null;
+
+  if (valueUpgradeAlt) return valueUpgradeAlt;
 
   const strongFamilyAlt = scored.find(({ candidate, score }) => (
     isPlanBEligible(candidate, score) &&
@@ -783,14 +803,28 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
 
   const premiumPool = scored.filter(({ candidate }) => isPremiumUserCandidate(candidate));
   const softPool = scored.filter(({ candidate }) => isSoftUserCandidate(candidate));
-  const best = chooseDisplayedRecommendation(premiumPool.length ? premiumPool : scored)
+  const cleanBandPool = scored.filter(({ candidate }) => isBandFallbackCandidate(candidate) && !isBlandGoalsPick(candidate));
+  const bandPool = scored.filter(({ candidate }) => isBandFallbackCandidate(candidate));
+  const primaryPool = premiumPool.length
+    ? premiumPool
+    : softPool.length
+      ? softPool
+      : cleanBandPool.length
+        ? cleanBandPool
+        : bandPool.length
+          ? bandPool
+          : scored;
+  const best = chooseDisplayedRecommendation(primaryPool)
     || premiumPool[0]?.candidate
     || softPool[0]?.candidate
+    || cleanBandPool[0]?.candidate
+    || bandPool[0]?.candidate
     || scored[0]?.candidate
     || scoringPool[0]
     || candidates[0];
   if (!best) return { primary: null, secondary: null, candidates: scored.map((entry) => entry.candidate) };
   const bestScore = scored.find(({ candidate }) => isSameRecommendation(candidate, best))?.score ?? scored[0]?.score ?? 0;
+  const bestFitsUserBand = isBandFallbackCandidate(best);
   const hasStrongAlt = scored.some(({ candidate, score }) => (
     candidate &&
     !isSameRecommendation(candidate, best) &&
@@ -802,6 +836,7 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
 
   const shouldSuppressPrimary =
     (
+      !bestFitsUserBand &&
       !isSoftUserCandidate(best) &&
       (
         bestScore < MIN_PRIMARY_SCORE ||
@@ -810,7 +845,7 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
       )
     ) ||
     (isDiscouragedPick(best) && (best.edge < 0.08 || best.p < 0.66)) ||
-    (isBlandGoalsPick(best) && !hasStrongAlt && (best.edge < 0.07 || best.bookOdds < 1.34));
+    (isBlandGoalsPick(best) && !bestFitsUserBand && !hasStrongAlt && (best.edge < 0.07 || best.bookOdds < 1.34));
 
   if (shouldSuppressPrimary) {
     return {
@@ -824,13 +859,31 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   best.isPremiumFit = isPremiumUserCandidate(best);
   best.isSoftFit = isSoftUserCandidate(best);
 
-  const secondary = pickSecondaryRecommendation(scored, best);
+  let secondary = pickSecondaryRecommendation(scored, best);
+  if (!secondary) {
+    secondary = scored.find(({ candidate }) => (
+      candidate &&
+      !isSameRecommendation(candidate, best) &&
+      !isInUserOddsBand(candidate) &&
+      candidate.bookOdds >= Math.max(best.bookOdds + 0.04, MAX_USER_RECO_ODDS + 0.02) &&
+      candidate.bookOdds <= 1.85 &&
+      candidate.p >= 0.68 &&
+      candidate.edge >= 0.04 &&
+      !isDiscouragedPick(candidate)
+    ))?.candidate || null;
+  }
   if (secondary) {
     const secondaryScore = scored.find(({ candidate }) => isSameRecommendation(candidate, secondary))?.score ?? 0;
+    const secondaryValueFit =
+      !isInUserOddsBand(secondary) &&
+      secondary.bookOdds <= 1.85 &&
+      secondary.p >= 0.68 &&
+      secondary.edge >= 0.04 &&
+      !isDiscouragedPick(secondary);
     const secondaryWeak =
-      secondaryScore < (bestScore - 0.34) ||
-      secondary.p < 0.54 ||
-      secondary.edge < 0.02 ||
+      (!secondaryValueFit && secondaryScore < (bestScore - 0.34)) ||
+      secondary.p < (secondaryValueFit ? 0.68 : 0.54) ||
+      secondary.edge < (secondaryValueFit ? 0.04 : 0.02) ||
       (isDiscouragedPick(secondary) && secondary.edge < 0.1);
     if (secondaryWeak) {
       return {
@@ -844,9 +897,26 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
     secondary.isSoftFit = isSoftUserCandidate(secondary);
   }
 
+  const resolvedSecondary = secondary || scored.find(({ candidate }) => (
+    candidate &&
+    !isSameRecommendation(candidate, best) &&
+    !isInUserOddsBand(candidate) &&
+    candidate.bookOdds >= Math.max(best.bookOdds + 0.04, MAX_USER_RECO_ODDS + 0.02) &&
+    candidate.bookOdds <= 1.85 &&
+    candidate.p >= 0.68 &&
+    candidate.edge >= 0.04 &&
+    !isDiscouragedPick(candidate)
+  ))?.candidate || null;
+
+  if (resolvedSecondary && !resolvedSecondary.confidence) {
+    resolvedSecondary.confidence = getRecommendationConfidence(resolvedSecondary);
+    resolvedSecondary.isPremiumFit = isPremiumUserCandidate(resolvedSecondary);
+    resolvedSecondary.isSoftFit = isSoftUserCandidate(resolvedSecondary);
+  }
+
   return {
     primary: best,
-    secondary: secondary || null,
+    secondary: resolvedSecondary,
     candidates: scored.map((entry) => entry.candidate)
   };
 }

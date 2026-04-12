@@ -1,5 +1,5 @@
 import { getJson, fmtOdds, fmtDayLong, fmtTime, pct01, escapeHtml } from "./js/utils.mjs";
-import { buildMatchRecommendationPair, getCandidatesForMatch } from "./js/recommendations.mjs";
+import { buildMatchRecommendationPair, getCandidatesForMatch, getRecommendationConfidence } from "./js/recommendations.mjs";
 
 const TEAM_DISPLAY_ALIASES = {
   "Fotbal Club FCSB": "FCSB"
@@ -20,7 +20,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "11";
+const APP_VERSION = "12";
 
 const el = (id) => document.getElementById(id);
 
@@ -296,7 +296,29 @@ function findMatchByFixtureId(fixtureId) {
 }
 
 function getRecommendedPair(match) {
-  return buildMatchRecommendationPair(match, getHistEntry) || { primary: null, secondary: null };
+  const pair = buildMatchRecommendationPair(match, getHistEntry) || { primary: null, secondary: null, candidates: [] };
+  if (!pair?.primary || pair?.secondary || !Array.isArray(pair?.candidates)) {
+    return pair;
+  }
+
+  const fallbackSecondary = pair.candidates.find((candidate) => (
+    candidate &&
+    `${candidate.market}|${candidate.sel}` !== `${pair.primary.market}|${pair.primary.sel}` &&
+    Number(candidate.bookOdds) >= Math.max(Number(pair.primary.bookOdds || 0) + 0.04, 1.52) &&
+    Number(candidate.bookOdds) <= 1.85 &&
+    Number(candidate.p) >= 0.68 &&
+    Number(candidate.edge) >= 0.04
+  )) || null;
+
+  if (!fallbackSecondary) return pair;
+  if (!fallbackSecondary.confidence) {
+    fallbackSecondary.confidence = getRecommendationConfidence(fallbackSecondary);
+  }
+
+  return {
+    ...pair,
+    secondary: fallbackSecondary
+  };
 }
 
 function bestAvailableMarkets(match) {
@@ -332,7 +354,7 @@ function getTopRecommendedMatches() {
       };
     })
     .filter(Boolean)
-    .filter(({ pair }) => Number(pair.primary.bookOdds) >= 1.2 && Number(pair.primary.bookOdds) <= 1.5 && Number(pair.primary.p || 0) >= 0.75)
+    .filter(({ pair }) => Number(pair.primary.bookOdds) >= 1.2 && Number(pair.primary.bookOdds) <= 1.5 && Number(pair.primary.p || 0) >= 0.7)
     .sort((a, b) => {
       const familyRank = (candidate) => {
         const market = String(candidate?.market || "");
@@ -528,7 +550,7 @@ function renderPick(container, pick, fallbackTitle) {
   const probabilityPct = Number.isFinite(probability) ? Math.round(probability * 100) : null;
   const barWidth = probabilityPct == null ? 50 : Math.max(10, Math.min(100, probabilityPct));
   const premiumNote = pick.isPremiumFit
-    ? "Se incadreaza in banda premium: cota 1.20-1.50 si minim 75% sanse estimate."
+    ? "Se incadreaza in banda premium: cota 1.20-1.50 si minim 70% sanse estimate."
     : pick.isSoftFit
       ? "Este cea mai apropiata varianta curata disponibila in banda de cote pentru acest meci."
       : null;
