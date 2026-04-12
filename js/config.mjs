@@ -1,7 +1,7 @@
 export const SAFE_THRESHOLD = 0.62;
 export const MAX_TICKET_LEG_ODDS = 1.6;
-export const MIN_MATCH_RECO_ODDS = 1.2;
-export const IDEAL_MATCH_RECO_ODDS = 1.32;
+export const MIN_MATCH_RECO_ODDS = 1.3;
+export const IDEAL_MATCH_RECO_ODDS = 1.38;
 export const MIN_PRIMARY_EDGE = 0.035;
 export const MIN_PRIMARY_PROBABILITY = 0.58;
 export const MIN_PRIMARY_SCORE = 1.34;

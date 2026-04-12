@@ -20,7 +20,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "9";
+const APP_VERSION = "10";
 
 const el = (id) => document.getElementById(id);
 
@@ -99,20 +99,17 @@ function bindPress(id, handler) {
   const node = el(id);
   if (!node) return;
 
-  let touchHandled = false;
+  let touchHandledUntil = 0;
 
   node.addEventListener("pointerup", (event) => {
     if (event.pointerType === "mouse") return;
-    touchHandled = true;
+    touchHandledUntil = Date.now() + 450;
     event.preventDefault();
     handler(event);
-    window.setTimeout(() => {
-      touchHandled = false;
-    }, 0);
   });
 
   node.addEventListener("click", (event) => {
-    if (touchHandled) return;
+    if (Date.now() < touchHandledUntil) return;
     handler(event);
   });
 }
@@ -306,7 +303,7 @@ function bestAvailableMarkets(match) {
   const candidates = getCandidatesForMatch(match, getHistEntry)
     .filter((entry) => Number.isFinite(Number(entry?.bookOdds)))
     .sort((a, b) => (b?.confidence?.score || 0) - (a?.confidence?.score || 0));
-  return candidates.slice(0, 8);
+  return candidates.slice(0, 18);
 }
 
 function getTopRecommendedMatches() {
@@ -338,9 +335,12 @@ function getTopRecommendedMatches() {
     .sort((a, b) => {
       const familyRank = (candidate) => {
         const market = String(candidate?.market || "");
-        if (market.startsWith("Corners ")) return 3;
-        if (market.startsWith("Cards ")) return 2;
-        if (market === "Double Chance" || market === "1X2") return 1;
+        if (market === "1X2" && candidate?.sel === "HOME") return 5;
+        if (market === "Double Chance") return 4;
+        if (market === "1X2") return 3;
+        if (market === "Goals 1.5" && candidate?.sel === "OVER") return 2;
+        if (market.startsWith("Corners ")) return 1;
+        if (market.startsWith("Cards ")) return 1;
         return 0;
       };
       const familyDelta = familyRank(b.pair.primary) - familyRank(a.pair.primary);
@@ -782,6 +782,11 @@ function bindActions() {
     const panel = el("marketsPanel");
     panel.hidden = !panel.hidden;
     el("toggleMarketsBtn").textContent = panel.hidden ? "Afiseaza toate pietele" : "Ascunde toate pietele";
+    if (!panel.hidden) {
+      animatePanel(panel);
+      animatePanelSwap(panel);
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 
   bindPress("toggleFormBtn", () => {
