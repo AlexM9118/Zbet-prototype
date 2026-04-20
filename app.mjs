@@ -23,9 +23,9 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "14";
+const APP_VERSION = "15";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
-const ADMIN_MODE_CODE = "zbet-zapp";
+const ADMIN_MODE_CODE = "18111991";
 
 const el = (id) => document.getElementById(id);
 
@@ -258,7 +258,30 @@ function renderAdminWatchdog() {
     : "Necunoscut";
   const today = toLocalDayString();
   const todayMatches = state.matches.filter((match) => String(match.day || "") === today).length;
+  const todayLeagues = new Set(state.matches.filter((match) => String(match.day || "") === today).map((match) => String(match.tournamentId || ""))).size;
+  const topRecommendedToday = getTopRecommendedMatches().length;
   const leaguesWithMatches = getLeagueCatalog().filter((league) => Array.isArray(league.matches) && league.matches.length > 0).length;
+  const latestDayLag = state.latestAvailableDay
+    ? Math.max(0, Math.round((toDayStamp(today) - toDayStamp(state.latestAvailableDay)) / 86400000))
+    : null;
+  const ageHours = generatedAt && Number.isFinite(generatedAt.getTime())
+    ? Math.max(0, Math.round((Date.now() - generatedAt.getTime()) / 3600000))
+    : null;
+  const severity = status.stale
+    ? "stale"
+    : ageHours != null && ageHours >= 24
+      ? "warn"
+      : "ok";
+  const severityLabel = severity === "stale"
+    ? "In urma"
+    : severity === "warn"
+      ? "Atentie"
+      : "OK";
+  const recommendedAction = severity === "ok"
+    ? "Nicio actiune necesara."
+    : severity === "warn"
+      ? "Verifica refresh-ul programat si confirma ca datele se actualizeaza inainte de urmatoarea zi."
+      : "Ruleaza oddspapi-run > odds si verifica workflow-urile automate.";
 
   panel.hidden = false;
   panel.innerHTML = `
@@ -268,7 +291,7 @@ function renderAdminWatchdog() {
         <div class="admin-watchdog-title">Watchdog date</div>
         <div class="admin-watchdog-copy">${escapeHtml(status.message || "Snapshot-ul de date este in regula pentru ziua curenta.")}</div>
       </div>
-      <div class="admin-watchdog-badge ${status.stale ? "stale" : "ok"}">${status.stale ? "In urma" : "OK"}</div>
+      <div class="admin-watchdog-badge ${severity}">${severityLabel}</div>
     </div>
     <div class="admin-watchdog-grid">
       <article class="admin-watchdog-item">
@@ -276,12 +299,28 @@ function renderAdminWatchdog() {
         <div class="admin-watchdog-value">${escapeHtml(generatedLabel)}</div>
       </article>
       <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Vechime snapshot</div>
+        <div class="admin-watchdog-value">${escapeHtml(ageHours == null ? "Necunoscuta" : `${ageHours}h`)}</div>
+      </article>
+      <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Ultima zi disponibila</div>
         <div class="admin-watchdog-value">${escapeHtml(state.latestAvailableDay ? fmtDayLong(state.latestAvailableDay) : "Necunoscuta")}</div>
       </article>
       <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Lag fata de azi</div>
+        <div class="admin-watchdog-value">${escapeHtml(latestDayLag == null ? "Necunoscut" : `${latestDayLag} zile`)}</div>
+      </article>
+      <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Meciuri azi</div>
         <div class="admin-watchdog-value">${escapeHtml(String(todayMatches))}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Competitii azi</div>
+        <div class="admin-watchdog-value">${escapeHtml(String(todayLeagues))}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Top picks azi</div>
+        <div class="admin-watchdog-value">${escapeHtml(String(topRecommendedToday))}</div>
       </article>
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Meciuri viitoare in feed</div>
@@ -294,6 +333,10 @@ function renderAdminWatchdog() {
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Admin mode</div>
         <div class="admin-watchdog-value">Activ pe acest dispozitiv</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Actiune recomandata</div>
+        <div class="admin-watchdog-value">${escapeHtml(recommendedAction)}</div>
       </article>
     </div>
   `;
@@ -861,34 +904,46 @@ function populateControls() {
 }
 
 function bindActions() {
-  const logo = el("brandLogo");
-  if (logo) {
-    let holdTimer = null;
-    const clearHold = () => {
-      if (!holdTimer) return;
-      window.clearTimeout(holdTimer);
-      holdTimer = null;
+  const adminTrigger = el("adminModeTrigger");
+  if (adminTrigger) {
+    let tapCount = 0;
+    let resetTimer = null;
+    const resetTaps = () => {
+      tapCount = 0;
+      if (resetTimer) {
+        window.clearTimeout(resetTimer);
+        resetTimer = null;
+      }
     };
 
-    logo.addEventListener("pointerdown", () => {
-      clearHold();
-      holdTimer = window.setTimeout(() => {
-        clearHold();
-        if (state.adminMode) {
-          if (window.confirm("Dezactivezi modul admin pe acest dispozitiv?")) {
-            setAdminMode(false);
-          }
-          return;
+    const registerAdminTap = () => {
+      tapCount += 1;
+      if (resetTimer) window.clearTimeout(resetTimer);
+      resetTimer = window.setTimeout(() => {
+        resetTaps();
+      }, 2200);
+
+      if (tapCount < 5) return;
+      resetTaps();
+      if (state.adminMode) {
+        if (window.confirm("Dezactivezi modul admin pe acest dispozitiv?")) {
+          setAdminMode(false);
         }
-        const code = window.prompt("Introdu codul admin");
-        if (code === ADMIN_MODE_CODE) {
-          setAdminMode(true);
-        }
-      }, 900);
+        return;
+      }
+      const code = window.prompt("Introdu codul admin");
+      if (code === ADMIN_MODE_CODE) {
+        setAdminMode(true);
+      }
+    };
+
+    adminTrigger.addEventListener("pointerup", (event) => {
+      event.preventDefault();
+      registerAdminTap();
     });
 
-    ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
-      logo.addEventListener(eventName, clearHold);
+    adminTrigger.addEventListener("click", (event) => {
+      event.preventDefault();
     });
   }
 
