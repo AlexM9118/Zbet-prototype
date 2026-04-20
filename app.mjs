@@ -10,6 +10,8 @@ const state = {
   catalogLeagues: [],
   historyByFixtureId: {},
   backtest: null,
+  matchesGeneratedAt: "",
+  latestAvailableDay: "",
   selectedLeague: "",
   selectedFixtureId: "",
   activeTab: "analyzer",
@@ -20,7 +22,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "12";
+const APP_VERSION = "13";
 
 const el = (id) => document.getElementById(id);
 
@@ -165,9 +167,69 @@ function toDayStamp(day) {
   return Number.isFinite(time) ? time : 0;
 }
 
+function toLocalDayString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function isUpcomingMatch(match) {
   const start = new Date(String(match?.startTime || "")).getTime();
   return Number.isFinite(start) && start >= Date.now();
+}
+
+function getLatestAvailableDay(matches) {
+  return [...new Set((matches || []).map((match) => String(match?.day || "")).filter(Boolean))]
+    .sort((a, b) => toDayStamp(a) - toDayStamp(b))
+    .slice(-1)[0] || "";
+}
+
+function getDataStatus() {
+  const today = toLocalDayString();
+  const latestDay = state.latestAvailableDay || "";
+  const hasUpcoming = Array.isArray(state.matches) && state.matches.length > 0;
+  const latestDayStale = latestDay ? toDayStamp(latestDay) < toDayStamp(today) : false;
+  const generatedAt = state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt) : null;
+  const generatedLabel = generatedAt && Number.isFinite(generatedAt.getTime())
+    ? generatedAt.toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" })
+    : "";
+
+  if (!hasUpcoming && latestDay) {
+    return {
+      stale: true,
+      message: `Feed-ul actual se opreste la ${fmtDayLong(latestDay)}${generatedLabel ? `, generat la ${generatedLabel}` : ""}. E nevoie de un refresh OddsPapi ca sa apara meciurile noi.`
+    };
+  }
+
+  if (latestDayStale) {
+    return {
+      stale: true,
+      message: `Datele disponibile sunt in urma fata de azi. Ultima zi din snapshot este ${fmtDayLong(latestDay)}${generatedLabel ? `, generat la ${generatedLabel}` : ""}.`
+    };
+  }
+
+  return { stale: false, message: "" };
+}
+
+function renderDataStatus() {
+  const notice = el("dataStatusNotice");
+  if (!notice) return;
+  const status = getDataStatus();
+  if (!status.message) {
+    notice.hidden = true;
+    notice.innerHTML = "";
+    return;
+  }
+  notice.hidden = false;
+  notice.innerHTML = `<div class="reason-item">${escapeHtml(status.message)}</div>`;
+}
+
+function refreshActionButtons() {
+  const matchBtn = el("analyzeMatchBtn");
+  const leagueBtn = el("analyzeLeagueBtn");
+  if (matchBtn) matchBtn.disabled = !state.selectedFixtureId;
+  if (leagueBtn) leagueBtn.disabled = !state.selectedLeague;
 }
 
 function getCurrentRoundMatches(matches) {
@@ -403,7 +465,8 @@ function renderTopMatches() {
   const items = getTopRecommendedMatches();
   count.textContent = `${items.length} selectii`;
   if (!items.length) {
-    grid.innerHTML = `<div class="reason-item">Momentan nu exista selectii suficient de clare pentru lista rapida de azi.</div>`;
+    const status = getDataStatus();
+    grid.innerHTML = `<div class="reason-item">${escapeHtml(status.stale && status.message ? status.message : "Momentan nu exista selectii suficient de clare pentru lista rapida de azi.")}</div>`;
     animatePanel(panel);
     animatePanelSwap(panel);
     return;
@@ -492,7 +555,8 @@ function formatLeagueMatches() {
   count.textContent = `${roundMatches.length} meciuri`;
 
   if (!roundMatches.length) {
-    list.innerHTML = `<div class="reason-item">Nu exista inca meciuri viitoare in etapa curenta pentru aceasta competitie.</div>`;
+    const status = getDataStatus();
+    list.innerHTML = `<div class="reason-item">${escapeHtml(status.stale && status.message ? status.message : "Nu exista inca meciuri viitoare in etapa curenta pentru aceasta competitie.")}</div>`;
     return;
   }
 
@@ -685,6 +749,7 @@ function populateControls() {
     el("matchSelect").innerHTML = `<option value="">Alege mai intai competitia</option>`;
     el("matchSelect").value = "";
     el("matchSelectHint").textContent = "Selecteaza o competitie ca sa vezi meciurile din etapa curenta.";
+    refreshActionButtons();
     syncSelectors();
     return;
   }
@@ -698,8 +763,11 @@ function populateControls() {
   if (!optionMatches.length) {
     el("matchSelect").innerHTML = `<option value="">Momentan nu exista meciuri disponibile</option>`;
     el("matchSelect").value = "";
-    el("matchSelectHint").textContent = "Competitia este disponibila in catalog, dar momentan nu are meciuri viitoare in etapa curenta.";
+    el("matchSelectHint").textContent = getDataStatus().stale && state.latestAvailableDay
+      ? `Feed-ul disponibil se opreste la ${fmtDayLong(state.latestAvailableDay)}. Este nevoie de un refresh de date pentru meciurile noi.`
+      : "Competitia este disponibila in catalog, dar momentan nu are meciuri viitoare in etapa curenta.";
     state.selectedFixtureId = "";
+    refreshActionButtons();
     syncSelectors();
     return;
   }
@@ -714,6 +782,7 @@ function populateControls() {
     state.selectedFixtureId = "";
   }
 
+  refreshActionButtons();
   syncSelectors();
 }
 
@@ -802,6 +871,12 @@ function bindActions() {
     renderTabState();
     formatLeagueMatches();
     renderAnalysis();
+    const panel = el("analysisPanel");
+    if (panel && !panel.hidden) {
+      animatePanel(panel);
+      animatePanelSwap(panel);
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 
   bindPress("analyzeLeagueBtn", () => {
@@ -810,6 +885,12 @@ function bindActions() {
     state.analysisVisible = false;
     formatLeagueMatches();
     renderAnalysis();
+    const panel = el("leaguePanel");
+    if (panel && !panel.hidden) {
+      animatePanel(panel);
+      animatePanelSwap(panel);
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   });
 
   bindPress("toggleMarketsBtn", () => {
@@ -853,8 +934,11 @@ async function init() {
   const matchesPayload = await getJson("./data/ui/matches.json");
   const historyPayload = await getJson("./data/ui/history_stats.json");
   const backtestPayload = await getJson("./data/ui/backtest_summary.json");
+  const rawMatches = matchesPayload.matches || [];
   state.catalogLeagues = leaguesPayload.leagues || [];
-  state.matches = (matchesPayload.matches || [])
+  state.matchesGeneratedAt = String(matchesPayload.generatedAtUTC || "");
+  state.latestAvailableDay = getLatestAvailableDay(rawMatches);
+  state.matches = rawMatches
     .filter((match) => isUpcomingMatch(match))
     .map((match) => ({
       ...match,
@@ -871,6 +955,8 @@ async function init() {
 
   populateControls();
   bindActions();
+  renderDataStatus();
+  refreshActionButtons();
   renderTabState();
   renderSearchResults();
   renderBacktest();

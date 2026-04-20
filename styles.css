@@ -327,6 +327,12 @@ select option{
 }
 .btn:hover{transform:translateY(-1px)}
 .btn:active{transform:translateY(0)}
+.btn:disabled{
+  cursor:not-allowed;
+  opacity:0.52;
+  transform:none;
+  box-shadow:none;
+}
 .btn-primary{
   background:linear-gradient(180deg,#a53741,#6d2730);
   color:#fff;
