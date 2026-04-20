@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#060a10" />
   <title>ZBet</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=13" />
+  <link rel="manifest" href="./manifest.webmanifest?v=14" />
   <link rel="apple-touch-icon" href="./icons/app-icon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=13" />
+  <link rel="stylesheet" href="./styles.css?v=14" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -24,7 +24,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <img src="./icons/zbet-logo.svg" alt="ZBet" class="brand-logo" />
+        <img id="brandLogo" src="./icons/zbet-logo.svg" alt="ZBet" class="brand-logo" />
         <div class="brand-copy">
           <div class="brand-row">
             <div class="brand-name">ZBet</div>
@@ -77,6 +77,7 @@
           <button id="analyzeMatchBtn" class="btn btn-primary">Analizeaza meciul</button>
           <button id="analyzeLeagueBtn" class="btn btn-secondary">Analizeaza toate meciurile din liga</button>
         </div>
+        <section id="adminWatchdogPanel" class="admin-watchdog" hidden></section>
       </section>
 
       <section id="leaguePanel" class="panel panel-league" hidden>
@@ -174,6 +175,6 @@
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=13"></script>
+  <script type="module" src="./app.mjs?v=14"></script>
 </body>
 </html>

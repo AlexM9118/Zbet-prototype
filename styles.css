@@ -344,6 +344,82 @@ select option{
   border-color:var(--stroke);
 }
 
+.admin-watchdog{
+  margin-top:18px;
+  padding:14px;
+  border-radius:20px;
+  border:1px solid rgba(141,125,243,0.28);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)),
+    linear-gradient(135deg, rgba(141,125,243,0.14), rgba(15,22,34,0.98) 62%);
+}
+.admin-watchdog-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.admin-watchdog-kicker{
+  color:#c8bcff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+}
+.admin-watchdog-title{
+  margin-top:4px;
+  font-size:15px;
+  font-weight:900;
+}
+.admin-watchdog-copy{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.admin-watchdog-badge{
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  border:1px solid rgba(255,255,255,0.1);
+  white-space:nowrap;
+}
+.admin-watchdog-badge.ok{
+  background:rgba(25,197,109,0.12);
+  color:#8ef0b7;
+}
+.admin-watchdog-badge.stale{
+  background:rgba(165,55,65,0.18);
+  color:#ffb3bb;
+}
+.admin-watchdog-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.admin-watchdog-item{
+  padding:12px;
+  border-radius:16px;
+  background:rgba(9,14,22,0.42);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.admin-watchdog-label{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+}
+.admin-watchdog-value{
+  margin-top:6px;
+  color:#f6f8fb;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.35;
+}
+
 .league-head{
   display:flex;
   justify-content:space-between;
@@ -741,6 +817,7 @@ select option{
   .markets-grid,
   .form-grid,
   .top-matches-grid{grid-template-columns:1fr}
+  .admin-watchdog-grid{grid-template-columns:1fr}
   .update-banner{
     left:10px;
     right:10px;

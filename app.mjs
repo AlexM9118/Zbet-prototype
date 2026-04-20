@@ -12,6 +12,7 @@ const state = {
   backtest: null,
   matchesGeneratedAt: "",
   latestAvailableDay: "",
+  adminMode: false,
   selectedLeague: "",
   selectedFixtureId: "",
   activeTab: "analyzer",
@@ -22,7 +23,9 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "13";
+const APP_VERSION = "14";
+const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
+const ADMIN_MODE_CODE = "zbet-zapp";
 
 const el = (id) => document.getElementById(id);
 
@@ -114,6 +117,20 @@ function bindPress(id, handler) {
     if (Date.now() < touchHandledUntil) return;
     handler(event);
   });
+}
+
+function setAdminMode(enabled) {
+  state.adminMode = Boolean(enabled);
+  if (state.adminMode) {
+    window.localStorage.setItem(ADMIN_MODE_STORAGE_KEY, "true");
+  } else {
+    window.localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
+  }
+  renderAdminWatchdog();
+}
+
+function restoreAdminMode() {
+  state.adminMode = window.localStorage.getItem(ADMIN_MODE_STORAGE_KEY) === "true";
 }
 
 function displayTeamName(name) {
@@ -223,6 +240,63 @@ function renderDataStatus() {
   }
   notice.hidden = false;
   notice.innerHTML = `<div class="reason-item">${escapeHtml(status.message)}</div>`;
+}
+
+function renderAdminWatchdog() {
+  const panel = el("adminWatchdogPanel");
+  if (!panel) return;
+  if (!state.adminMode) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+
+  const status = getDataStatus();
+  const generatedAt = state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt) : null;
+  const generatedLabel = generatedAt && Number.isFinite(generatedAt.getTime())
+    ? generatedAt.toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" })
+    : "Necunoscut";
+  const today = toLocalDayString();
+  const todayMatches = state.matches.filter((match) => String(match.day || "") === today).length;
+  const leaguesWithMatches = getLeagueCatalog().filter((league) => Array.isArray(league.matches) && league.matches.length > 0).length;
+
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="admin-watchdog-head">
+      <div>
+        <div class="admin-watchdog-kicker">Admin</div>
+        <div class="admin-watchdog-title">Watchdog date</div>
+        <div class="admin-watchdog-copy">${escapeHtml(status.message || "Snapshot-ul de date este in regula pentru ziua curenta.")}</div>
+      </div>
+      <div class="admin-watchdog-badge ${status.stale ? "stale" : "ok"}">${status.stale ? "In urma" : "OK"}</div>
+    </div>
+    <div class="admin-watchdog-grid">
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Snapshot generat</div>
+        <div class="admin-watchdog-value">${escapeHtml(generatedLabel)}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Ultima zi disponibila</div>
+        <div class="admin-watchdog-value">${escapeHtml(state.latestAvailableDay ? fmtDayLong(state.latestAvailableDay) : "Necunoscuta")}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Meciuri azi</div>
+        <div class="admin-watchdog-value">${escapeHtml(String(todayMatches))}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Meciuri viitoare in feed</div>
+        <div class="admin-watchdog-value">${escapeHtml(String(state.matches.length))}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Competitii active</div>
+        <div class="admin-watchdog-value">${escapeHtml(String(leaguesWithMatches))}</div>
+      </article>
+      <article class="admin-watchdog-item">
+        <div class="admin-watchdog-label">Admin mode</div>
+        <div class="admin-watchdog-value">Activ pe acest dispozitiv</div>
+      </article>
+    </div>
+  `;
 }
 
 function refreshActionButtons() {
@@ -787,6 +861,37 @@ function populateControls() {
 }
 
 function bindActions() {
+  const logo = el("brandLogo");
+  if (logo) {
+    let holdTimer = null;
+    const clearHold = () => {
+      if (!holdTimer) return;
+      window.clearTimeout(holdTimer);
+      holdTimer = null;
+    };
+
+    logo.addEventListener("pointerdown", () => {
+      clearHold();
+      holdTimer = window.setTimeout(() => {
+        clearHold();
+        if (state.adminMode) {
+          if (window.confirm("Dezactivezi modul admin pe acest dispozitiv?")) {
+            setAdminMode(false);
+          }
+          return;
+        }
+        const code = window.prompt("Introdu codul admin");
+        if (code === ADMIN_MODE_CODE) {
+          setAdminMode(true);
+        }
+      }, 900);
+    });
+
+    ["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
+      logo.addEventListener(eventName, clearHold);
+    });
+  }
+
   bindPress("tabAnalyzerBtn", () => {
     state.activeTab = "analyzer";
     renderTabState();
@@ -952,10 +1057,12 @@ async function init() {
   state.activeTab = "analyzer";
   state.analysisVisible = false;
   state.searchTerm = "";
+  restoreAdminMode();
 
   populateControls();
   bindActions();
   renderDataStatus();
+  renderAdminWatchdog();
   refreshActionButtons();
   renderTabState();
   renderSearchResults();
