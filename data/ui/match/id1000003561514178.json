@@ -9,10 +9,31 @@
   "home": "Union Berlin",
   "away": "1. FC Cologne",
   "bookmakerKey": "superbet.ro",
-  "fixturePath": null,
+  "fixturePath": "https://superbet.com/offer-event/e-11959360",
   "featuredMarkets": {
     "ft1x2": null,
-    "btts": null,
+    "btts": {
+      "key": "btts",
+      "label": "BTTS",
+      "marketId": "104",
+      "bookmakerMarketId": "a6e5794b-6b3a-5bd9-83c4-787e9e43222c",
+      "outcomes": [
+        {
+          "key": "YES",
+          "label": "Yes",
+          "outcomeId": "104",
+          "price": 1.68,
+          "changedAt": "2026-04-21T13:05:24.176Z"
+        },
+        {
+          "key": "NO",
+          "label": "No",
+          "outcomeId": "105",
+          "price": 2.1,
+          "changedAt": "2026-04-21T13:05:24.176Z"
+        }
+      ]
+    },
     "doubleChance": null
   },
   "selectionIndex": {
@@ -22,9 +43,9 @@
       "label": "BTTS YES",
       "marketId": "104",
       "outcomeId": "104",
-      "bookmakerMarketId": null,
-      "price": null,
-      "changedAt": null
+      "bookmakerMarketId": "a6e5794b-6b3a-5bd9-83c4-787e9e43222c",
+      "price": 1.68,
+      "changedAt": "2026-04-21T13:05:24.176Z"
     },
     "BTTS|NO": {
       "market": "BTTS",
@@ -32,9 +53,9 @@
       "label": "BTTS NO",
       "marketId": "104",
       "outcomeId": "105",
-      "bookmakerMarketId": null,
-      "price": null,
-      "changedAt": null
+      "bookmakerMarketId": "a6e5794b-6b3a-5bd9-83c4-787e9e43222c",
+      "price": 2.1,
+      "changedAt": "2026-04-21T13:05:24.176Z"
     },
     "Double Chance|1X": {
       "market": "Double Chance",
@@ -267,5 +288,50 @@
       "changedAt": null
     }
   },
-  "markets": []
+  "markets": [
+    {
+      "marketId": "104",
+      "bookmakerMarketId": "a6e5794b-6b3a-5bd9-83c4-787e9e43222c",
+      "outcomes": [
+        {
+          "outcomeId": "104",
+          "playerKey": "0",
+          "playerName": null,
+          "price": 1.68,
+          "changedAt": "2026-04-21T13:05:24.176Z",
+          "bookmakerOutcomeId": "5e6497c8-47a8-5fb6-bebd-fb135a52f4f7"
+        },
+        {
+          "outcomeId": "105",
+          "playerKey": "0",
+          "playerName": null,
+          "price": 2.1,
+          "changedAt": "2026-04-21T13:05:24.176Z",
+          "bookmakerOutcomeId": "3631ef0b-c84c-5ef5-955a-e1adacd58e77"
+        }
+      ]
+    },
+    {
+      "marketId": "10300",
+      "bookmakerMarketId": "2f5ad61f-5413-5c65-be79-fddc5349c0d1",
+      "outcomes": [
+        {
+          "outcomeId": "10301",
+          "playerKey": "0",
+          "playerName": null,
+          "price": 1.2,
+          "changedAt": "2026-04-21T13:05:24.176Z",
+          "bookmakerOutcomeId": "02fa133f-70fe-5758-890d-e30845f58e98"
+        },
+        {
+          "outcomeId": "10300",
+          "playerKey": "0",
+          "playerName": null,
+          "price": 4.2,
+          "changedAt": "2026-04-21T13:05:24.176Z",
+          "bookmakerOutcomeId": "6c0a042b-5632-58b6-bb7d-1857eef536df"
+        }
+      ]
+    }
+  ]
 }
