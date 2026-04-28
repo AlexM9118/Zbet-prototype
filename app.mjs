@@ -23,7 +23,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "15";
+const APP_VERSION = "16";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
 
@@ -193,7 +193,11 @@ function toLocalDayString(date = new Date()) {
 
 function isUpcomingMatch(match) {
   const start = new Date(String(match?.startTime || "")).getTime();
-  return Number.isFinite(start) && start >= Date.now();
+  const matchDay = String(match?.day || "");
+  return Boolean(
+    (Number.isFinite(start) && start >= Date.now()) ||
+    (matchDay && toDayStamp(matchDay) >= toDayStamp(toLocalDayString()))
+  );
 }
 
 function getLatestAvailableDay(matches) {
@@ -208,9 +212,13 @@ function getDataStatus() {
   const hasUpcoming = Array.isArray(state.matches) && state.matches.length > 0;
   const latestDayStale = latestDay ? toDayStamp(latestDay) < toDayStamp(today) : false;
   const generatedAt = state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt) : null;
+  const ageHours = generatedAt && Number.isFinite(generatedAt.getTime())
+    ? Math.max(0, Math.round((Date.now() - generatedAt.getTime()) / 3600000))
+    : null;
   const generatedLabel = generatedAt && Number.isFinite(generatedAt.getTime())
     ? generatedAt.toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" })
     : "";
+  const agedSnapshot = ageHours != null && ageHours >= 24;
 
   if (!hasUpcoming && latestDay) {
     return {
@@ -223,6 +231,14 @@ function getDataStatus() {
     return {
       stale: true,
       message: `Datele disponibile sunt in urma fata de azi. Ultima zi din snapshot este ${fmtDayLong(latestDay)}${generatedLabel ? `, generat la ${generatedLabel}` : ""}.`
+    };
+  }
+
+  if (agedSnapshot) {
+    return {
+      stale: false,
+      warn: true,
+      message: `Snapshot-ul curent este mai vechi de 24h${generatedLabel ? `, ultima generare fiind ${generatedLabel}` : ""}. Pot lipsi unele meciuri sau actualizari de cote.`
     };
   }
 
@@ -269,7 +285,7 @@ function renderAdminWatchdog() {
     : null;
   const severity = status.stale
     ? "stale"
-    : ageHours != null && ageHours >= 24
+    : status.warn || (ageHours != null && ageHours >= 24)
       ? "warn"
       : "ok";
   const severityLabel = severity === "stale"
@@ -340,6 +356,16 @@ function renderAdminWatchdog() {
       </article>
     </div>
   `;
+}
+
+function openAdminWatchdogModal() {
+  if (!state.adminMode) return;
+  renderAdminWatchdog();
+  el("adminWatchdogModal").hidden = false;
+}
+
+function closeAdminWatchdogModal() {
+  el("adminWatchdogModal").hidden = true;
 }
 
 function refreshActionButtons() {
@@ -926,14 +952,13 @@ function bindActions() {
       if (tapCount < 5) return;
       resetTaps();
       if (state.adminMode) {
-        if (window.confirm("Dezactivezi modul admin pe acest dispozitiv?")) {
-          setAdminMode(false);
-        }
+        openAdminWatchdogModal();
         return;
       }
       const code = window.prompt("Introdu codul admin");
       if (code === ADMIN_MODE_CODE) {
         setAdminMode(true);
+        openAdminWatchdogModal();
       }
     };
 
@@ -978,12 +1003,25 @@ function bindActions() {
     el("modelDetailsModal").hidden = true;
   });
 
+  bindPress("closeAdminWatchdogBtn", () => {
+    closeAdminWatchdogModal();
+  });
+
+  bindPress("disableAdminModeBtn", () => {
+    setAdminMode(false);
+    closeAdminWatchdogModal();
+  });
+
   el("modelSummaryBackdrop").addEventListener("click", () => {
     el("modelSummaryModal").hidden = true;
   });
 
   el("modelDetailsBackdrop").addEventListener("click", () => {
     el("modelDetailsModal").hidden = true;
+  });
+
+  el("adminWatchdogBackdrop").addEventListener("click", () => {
+    closeAdminWatchdogModal();
   });
 
   el("leagueSelect").addEventListener("change", () => {

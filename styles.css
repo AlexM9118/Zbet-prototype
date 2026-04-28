@@ -173,6 +173,9 @@ body{min-height:100vh}
   width:min(680px, calc(100vw - 28px));
   padding:18px;
 }
+.admin-watchdog-modal-card{
+  width:min(760px, calc(100vw - 28px));
+}
 .modal-card-details .backtest-value{
   font-size:19px;
 }
@@ -345,7 +348,6 @@ select option{
 }
 
 .admin-watchdog{
-  margin-top:18px;
   padding:14px;
   border-radius:20px;
   border:1px solid rgba(141,125,243,0.28);
@@ -813,6 +815,7 @@ select option{
   .modal-card,
   .modal-card-details{width:min(100%, calc(100vw - 24px))}
   .modal-card-details{padding:16px}
+  .admin-watchdog-modal-card{width:min(100%, calc(100vw - 24px))}
   .layout{grid-template-columns:1fr}
   .panel-analysis{grid-column:auto;grid-row:auto}
   .panel-top-matches{grid-column:auto;grid-row:auto}
