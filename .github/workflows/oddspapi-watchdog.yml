@@ -66,6 +66,14 @@ jobs:
         if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
         run: node scripts/build-backtest-summary.mjs
 
+      - name: Update admin watchdog status
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        env:
+          REFRESH_SOURCE: "watchdog"
+          FALLBACK_TRIGGERED: "true"
+          FALLBACK_REASON: ${{ steps.freshness.outputs.reason }}
+        run: node scripts/write-admin-watchdog-status.mjs
+
       - name: Commit fallback outputs
         if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
         run: |
@@ -74,6 +82,7 @@ jobs:
 
           git add data/oddspapi_odds.json data/oddspapi_odds_index.json || true
           git add data/oddspapi_odds_parts || true
+          git add data/ui/admin_watchdog_status.json || true
           git add data/ui || true
 
           if git diff --cached --quiet; then

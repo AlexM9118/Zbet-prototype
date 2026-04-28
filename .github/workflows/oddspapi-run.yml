@@ -121,6 +121,12 @@ jobs:
         if: ${{ inputs.job == 'odds' || inputs.job == 'build_ui' }}
         run: node scripts/build-backtest-summary.mjs
 
+      - name: Update admin watchdog status
+        if: ${{ inputs.job == 'odds' }}
+        env:
+          REFRESH_SOURCE: "manual"
+        run: node scripts/write-admin-watchdog-status.mjs
+
       # ----------------------------
       # Fixtures smoke test (finished) - optional
       # ----------------------------

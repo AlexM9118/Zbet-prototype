@@ -50,6 +50,11 @@ jobs:
       - name: Build backtest summary
         run: node scripts/build-backtest-summary.mjs
 
+      - name: Update admin watchdog status
+        env:
+          REFRESH_SOURCE: "scheduled"
+        run: node scripts/write-admin-watchdog-status.mjs
+
       - name: Commit outputs
         run: |
           git config user.name "github-actions[bot]"
@@ -57,6 +62,7 @@ jobs:
 
           git add data/oddspapi_odds.json data/oddspapi_odds_index.json || true
           git add data/oddspapi_odds_parts || true
+          git add data/ui/admin_watchdog_status.json || true
           git add data/ui || true
 
           if git diff --cached --quiet; then

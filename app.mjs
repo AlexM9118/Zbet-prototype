@@ -10,6 +10,7 @@ const state = {
   catalogLeagues: [],
   historyByFixtureId: {},
   backtest: null,
+  adminWatchdogStatus: null,
   matchesGeneratedAt: "",
   latestAvailableDay: "",
   adminMode: false,
@@ -23,7 +24,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "16";
+const APP_VERSION = "17";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
 
@@ -258,6 +259,21 @@ function renderDataStatus() {
   notice.innerHTML = `<div class="reason-item">${escapeHtml(status.message)}</div>`;
 }
 
+function formatAdminDateTime(value) {
+  if (!value) return "Necunoscut";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "Necunoscut";
+  return date.toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function formatRefreshSource(source) {
+  const raw = String(source || "").trim().toLowerCase();
+  if (raw === "scheduled") return "Programat";
+  if (raw === "watchdog") return "Fallback watchdog";
+  if (raw === "manual") return "Manual";
+  return "Necunoscut";
+}
+
 function renderAdminWatchdog() {
   const panel = el("adminWatchdogPanel");
   if (!panel) return;
@@ -267,92 +283,49 @@ function renderAdminWatchdog() {
     return;
   }
 
-  const status = getDataStatus();
-  const generatedAt = state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt) : null;
-  const generatedLabel = generatedAt && Number.isFinite(generatedAt.getTime())
-    ? generatedAt.toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" })
-    : "Necunoscut";
+  const adminStatus = state.adminWatchdogStatus || {};
   const today = toLocalDayString();
   const todayMatches = state.matches.filter((match) => String(match.day || "") === today).length;
-  const todayLeagues = new Set(state.matches.filter((match) => String(match.day || "") === today).map((match) => String(match.tournamentId || ""))).size;
-  const topRecommendedToday = getTopRecommendedMatches().length;
-  const leaguesWithMatches = getLeagueCatalog().filter((league) => Array.isArray(league.matches) && league.matches.length > 0).length;
-  const latestDayLag = state.latestAvailableDay
-    ? Math.max(0, Math.round((toDayStamp(today) - toDayStamp(state.latestAvailableDay)) / 86400000))
-    : null;
-  const ageHours = generatedAt && Number.isFinite(generatedAt.getTime())
-    ? Math.max(0, Math.round((Date.now() - generatedAt.getTime()) / 3600000))
-    : null;
-  const severity = status.stale
-    ? "stale"
-    : status.warn || (ageHours != null && ageHours >= 24)
-      ? "warn"
-      : "ok";
-  const severityLabel = severity === "stale"
-    ? "In urma"
-    : severity === "warn"
-      ? "Atentie"
-      : "OK";
-  const recommendedAction = severity === "ok"
-    ? "Nicio actiune necesara."
-    : severity === "warn"
-      ? "Verifica refresh-ul programat si confirma ca datele se actualizeaza inainte de urmatoarea zi."
-      : "Ruleaza oddspapi-run > odds si verifica workflow-urile automate.";
+  const fallbackTriggered = Boolean(adminStatus.lastFallbackTriggeredUTC);
+  const fallbackLabel = fallbackTriggered
+    ? `Da • ${formatAdminDateTime(adminStatus.lastFallbackTriggeredUTC)}`
+    : "Nu a fost necesar pana acum";
+  const fallbackReason = fallbackTriggered
+    ? String(adminStatus.lastFallbackReason || "Fallback rulat fara motiv explicit.")
+    : "N/A";
 
   panel.hidden = false;
   panel.innerHTML = `
     <div class="admin-watchdog-head">
       <div>
         <div class="admin-watchdog-kicker">Admin</div>
-        <div class="admin-watchdog-title">Watchdog date</div>
-        <div class="admin-watchdog-copy">${escapeHtml(status.message || "Snapshot-ul de date este in regula pentru ziua curenta.")}</div>
+        <div class="admin-watchdog-title">Watchdog refresh</div>
       </div>
-      <div class="admin-watchdog-badge ${severity}">${severityLabel}</div>
     </div>
     <div class="admin-watchdog-grid">
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Snapshot generat</div>
-        <div class="admin-watchdog-value">${escapeHtml(generatedLabel)}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Vechime snapshot</div>
-        <div class="admin-watchdog-value">${escapeHtml(ageHours == null ? "Necunoscuta" : `${ageHours}h`)}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Ultima zi disponibila</div>
-        <div class="admin-watchdog-value">${escapeHtml(state.latestAvailableDay ? fmtDayLong(state.latestAvailableDay) : "Necunoscuta")}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Lag fata de azi</div>
-        <div class="admin-watchdog-value">${escapeHtml(latestDayLag == null ? "Necunoscut" : `${latestDayLag} zile`)}</div>
-      </article>
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Meciuri azi</div>
         <div class="admin-watchdog-value">${escapeHtml(String(todayMatches))}</div>
       </article>
       <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Competitii azi</div>
-        <div class="admin-watchdog-value">${escapeHtml(String(todayLeagues))}</div>
+        <div class="admin-watchdog-label">Ultimul refresh reusit</div>
+        <div class="admin-watchdog-value">${escapeHtml(formatAdminDateTime(adminStatus.lastSuccessfulRefreshUTC || state.matchesGeneratedAt))}</div>
       </article>
       <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Top picks azi</div>
-        <div class="admin-watchdog-value">${escapeHtml(String(topRecommendedToday))}</div>
+        <div class="admin-watchdog-label">Sursa ultimului refresh</div>
+        <div class="admin-watchdog-value">${escapeHtml(formatRefreshSource(adminStatus.lastSuccessfulRefreshSource))}</div>
       </article>
       <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Meciuri viitoare in feed</div>
-        <div class="admin-watchdog-value">${escapeHtml(String(state.matches.length))}</div>
+        <div class="admin-watchdog-label">Fallback</div>
+        <div class="admin-watchdog-value">${escapeHtml(fallbackLabel)}</div>
       </article>
       <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Competitii active</div>
-        <div class="admin-watchdog-value">${escapeHtml(String(leaguesWithMatches))}</div>
+        <div class="admin-watchdog-label">Motiv fallback</div>
+        <div class="admin-watchdog-value">${escapeHtml(fallbackReason)}</div>
       </article>
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Admin mode</div>
         <div class="admin-watchdog-value">Activ pe acest dispozitiv</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Actiune recomandata</div>
-        <div class="admin-watchdog-value">${escapeHtml(recommendedAction)}</div>
       </article>
     </div>
   `;
@@ -1132,10 +1105,12 @@ async function init() {
   const matchesPayload = await getJson("./data/ui/matches.json");
   const historyPayload = await getJson("./data/ui/history_stats.json");
   const backtestPayload = await getJson("./data/ui/backtest_summary.json");
+  const adminWatchdogPayload = await getJson("./data/ui/admin_watchdog_status.json").catch(() => ({}));
   const rawMatches = matchesPayload.matches || [];
   state.catalogLeagues = leaguesPayload.leagues || [];
   state.matchesGeneratedAt = String(matchesPayload.generatedAtUTC || "");
   state.latestAvailableDay = getLatestAvailableDay(rawMatches);
+  state.adminWatchdogStatus = adminWatchdogPayload || null;
   state.matches = rawMatches
     .filter((match) => isUpcomingMatch(match))
     .map((match) => ({

@@ -1,10 +1,10 @@
-const STATIC_CACHE = "zbet-prototype-static-v16";
+const STATIC_CACHE = "zbet-prototype-static-v17";
 const APP_SHELL = [
   "./",
-  "./index.html?v=16",
-  "./styles.css?v=16",
-  "./app.mjs?v=16",
-  "./manifest.webmanifest?v=16",
+  "./index.html?v=17",
+  "./styles.css?v=17",
+  "./app.mjs?v=17",
+  "./manifest.webmanifest?v=17",
   "./icons/app-icon.svg",
   "./icons/zbet-logo.svg",
   "./js/config.mjs",
@@ -14,7 +14,8 @@ const APP_SHELL = [
   "./data/ui/leagues.json",
   "./data/ui/matches.json",
   "./data/ui/history_stats.json",
-  "./data/ui/backtest_summary.json"
+  "./data/ui/backtest_summary.json",
+  "./data/ui/admin_watchdog_status.json"
 ];
 
 self.addEventListener("install", (event) => {
@@ -42,7 +43,8 @@ function isDataRequest(requestUrl) {
   return requestUrl.pathname.endsWith("/data/ui/leagues.json")
     || requestUrl.pathname.endsWith("/data/ui/matches.json")
     || requestUrl.pathname.endsWith("/data/ui/history_stats.json")
-    || requestUrl.pathname.endsWith("/data/ui/backtest_summary.json");
+    || requestUrl.pathname.endsWith("/data/ui/backtest_summary.json")
+    || requestUrl.pathname.endsWith("/data/ui/admin_watchdog_status.json");
 }
 
 self.addEventListener("fetch", (event) => {
@@ -57,7 +59,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=16")))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=17")))
     );
     return;
   }
