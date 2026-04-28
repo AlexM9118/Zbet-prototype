@@ -283,13 +283,13 @@ function scoreMarketFit(candidate) {
   const goalsMatch = String(candidate.market).match(/^Goals (\d+(?:\.\d+)?)$/);
   if (goalsMatch) {
     const line = Number(goalsMatch[1]);
-    if (candidate.sel === "OVER" && line === 1.5 && candidate.bookOdds >= 1.3 && candidate.bookOdds <= 1.5) score += 0.66;
-    if (candidate.sel === "OVER" && line === 1.5 && candidate.bookOdds < 1.3) score -= 0.82;
-    if (candidate.sel === "OVER" && line >= 2.5 && line <= 3.5) score += 0.16;
-    if (candidate.sel === "OVER" && line === 2.5 && candidate.bookOdds >= 1.3 && candidate.bookOdds <= 1.6) score += 0.08;
-    if (candidate.sel === "UNDER" && line === 2.5 && candidate.bookOdds >= 1.36 && candidate.bookOdds <= 1.54) score += 0.04;
-    if (candidate.sel === "UNDER" && line === 3.5) score -= 0.86;
-    if (candidate.sel === "UNDER" && line >= 4.5) score -= 1.08;
+    if (candidate.sel === "OVER" && line === 1.5 && candidate.bookOdds >= 1.28 && candidate.bookOdds <= 1.44) score += 0.18;
+    if (candidate.sel === "OVER" && line === 1.5 && candidate.bookOdds < 1.3) score -= 1.04;
+    if (candidate.sel === "OVER" && line >= 2.5 && line <= 3.5) score += 0.24;
+    if (candidate.sel === "OVER" && line === 2.5 && candidate.bookOdds >= 1.28 && candidate.bookOdds <= 1.62) score += 0.18;
+    if (candidate.sel === "UNDER" && line === 2.5 && candidate.bookOdds >= 1.34 && candidate.bookOdds <= 1.56) score += 0.12;
+    if (candidate.sel === "UNDER" && line === 3.5) score -= 1.12;
+    if (candidate.sel === "UNDER" && line >= 4.5) score -= 1.42;
     if (candidate.sel === "UNDER" && candidate.bookOdds < 1.3) score -= 0.26;
     return score;
   }
@@ -339,11 +339,14 @@ function candidateScore(candidate) {
   const genericLowOddsPenalty = candidate.bookOdds < MIN_MATCH_RECO_ODDS ? (MIN_MATCH_RECO_ODDS - candidate.bookOdds) * 1.8 : 0;
   const genericOddsDistance = Math.abs(candidate.bookOdds - IDEAL_MATCH_RECO_ODDS) * 0.35;
   const marketFit = scoreMarketFit(candidate);
+  const templatePenalty = isTemplateGoalsPick(candidate)
+    ? (candidate.market === "Goals 1.5" ? 0.34 : 0.56)
+    : 0;
   const agreementGap = Number.isFinite(candidate.marketProbability) ? Math.abs(candidate.p - candidate.marketProbability) : 0.08;
   const agreementBonus = Number.isFinite(candidate.marketProbability)
     ? Math.max(0, 0.12 - agreementGap) * 1.6
     : 0;
-  return profile.baseBonus + marketFit + agreementBonus + probabilityBoost + edgeBoost - oddsDistancePenalty - lowOddsPenalty - highOddsPenalty - weakProbPenalty - genericLowOddsPenalty - genericOddsDistance;
+  return profile.baseBonus + marketFit + agreementBonus + probabilityBoost + edgeBoost - oddsDistancePenalty - lowOddsPenalty - highOddsPenalty - weakProbPenalty - genericLowOddsPenalty - genericOddsDistance - templatePenalty;
 }
 
 function candidateLineLabel(candidate) {
@@ -351,10 +354,22 @@ function candidateLineLabel(candidate) {
   return `${candidate.market}|${candidate.sel}`;
 }
 
+function isTemplateGoalsPick(candidate) {
+  return Boolean(
+    candidate &&
+    (
+      (candidate.market === "Goals 1.5" && candidate.sel === "OVER") ||
+      (candidate.market === "Goals 3.5" && candidate.sel === "UNDER") ||
+      (candidate.market === "Goals 4.5" && candidate.sel === "UNDER")
+    )
+  );
+}
+
 function isBlandGoalsPick(candidate) {
-  return (
-    (candidate.market === "Goals 3.5" && candidate.sel === "UNDER") ||
-    (candidate.market === "Goals 4.5" && candidate.sel === "UNDER")
+  return isTemplateGoalsPick(candidate) || (
+    candidate?.market === "Goals 2.5" &&
+    candidate?.sel === "UNDER" &&
+    Number(candidate?.bookOdds) <= 1.32
   );
 }
 
@@ -381,7 +396,8 @@ function isSoftUserCandidate(candidate) {
     candidate &&
     isInUserOddsBand(candidate) &&
     candidate.p >= 0.68 &&
-    !isDiscouragedPick(candidate)
+    !isDiscouragedPick(candidate) &&
+    !isTemplateGoalsPick(candidate)
   );
 }
 
@@ -401,6 +417,24 @@ function chooseDisplayedRecommendation(scored) {
   const familyOfBest = marketFamily(best);
   const lineOfBest = candidateLineLabel(best);
   const goalsLine = String(best.market).match(/^Goals (\d+(?:\.\d+)?)$/)?.[1];
+  const bestIsTemplateGoals = isTemplateGoalsPick(best);
+
+  const premiumEscape = ordered.find(({ candidate, score }) => (
+    candidate &&
+    !isSameRecommendation(candidate, best) &&
+    !isTemplateGoalsPick(candidate) &&
+    candidate.bookOdds >= 1.24 &&
+    (
+      ["1X2", "DOUBLE_CHANCE", "BTTS", "CORNERS", "CARDS"].includes(marketFamily(candidate)) ||
+      (marketFamily(candidate) === "GOALS" && ["Goals 2.5", "Goals 3.5"].includes(candidate.market))
+    ) &&
+    candidate.p >= 0.54 &&
+    score >= ordered[0].score - 0.58
+  ))?.candidate || null;
+
+  if (premiumEscape && bestIsTemplateGoals) {
+    return premiumEscape;
+  }
 
   const underEscape = ordered.find(({ candidate }) => (
     candidate &&
@@ -670,6 +704,19 @@ export function getCandidatesForMatch(match, getHistEntry, minProbability = 0.58
     .sort((a, b) => candidateScore(b) - candidateScore(a) || (b.p - a.p) || (b.edge - a.edge) || (a.bookOdds - b.bookOdds)));
 }
 
+function mergeUniqueCandidates(primaryCandidates, fallbackCandidates) {
+  const seen = new Set();
+  const merged = [];
+  for (const candidate of [...(primaryCandidates || []), ...(fallbackCandidates || [])]) {
+    if (!candidate) continue;
+    const key = `${candidate.market}|${candidate.sel}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(candidate);
+  }
+  return merged;
+}
+
 function fallbackCandidatesFromOdds(match) {
   const candidates = [];
 
@@ -787,7 +834,10 @@ export function buildMatchRecommendation(match, getHistEntry) {
 export function buildMatchRecommendationPair(match, getHistEntry) {
   const historyCandidates = getCandidatesForMatch(match, getHistEntry, 0.46)
     .filter((candidate) => Number.isFinite(candidate.bookOdds) && candidate.bookOdds <= MAX_TICKET_LEG_ODDS + 0.15);
-  const candidates = historyCandidates.length ? historyCandidates : fallbackCandidatesFromOdds(match);
+  const fallbackCandidates = fallbackCandidatesFromOdds(match);
+  const candidates = historyCandidates.length
+    ? mergeUniqueCandidates(historyCandidates, fallbackCandidates)
+    : fallbackCandidates;
   if (!candidates.length) return { primary: null, secondary: null, candidates: [] };
 
   const preferredCandidates = candidates.filter((candidate) => candidate.bookOdds >= MIN_MATCH_RECO_ODDS);
@@ -804,6 +854,14 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   const premiumPool = scored.filter(({ candidate }) => isPremiumUserCandidate(candidate));
   const softPool = scored.filter(({ candidate }) => isSoftUserCandidate(candidate));
   const cleanBandPool = scored.filter(({ candidate }) => isBandFallbackCandidate(candidate) && !isBlandGoalsPick(candidate));
+  const structuralPool = scored.filter(({ candidate }) => (
+    candidate &&
+    !isDiscouragedPick(candidate) &&
+    !isTemplateGoalsPick(candidate) &&
+    candidate.bookOdds >= 1.24 &&
+    candidate.bookOdds <= 1.72 &&
+    candidate.p >= 0.54
+  ));
   const bandPool = scored.filter(({ candidate }) => isBandFallbackCandidate(candidate));
   const primaryPool = premiumPool.length
     ? premiumPool
@@ -811,13 +869,16 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
       ? softPool
       : cleanBandPool.length
         ? cleanBandPool
-        : bandPool.length
+        : structuralPool.length
+          ? structuralPool
+          : bandPool.length
           ? bandPool
           : scored;
   const best = chooseDisplayedRecommendation(primaryPool)
     || premiumPool[0]?.candidate
     || softPool[0]?.candidate
     || cleanBandPool[0]?.candidate
+    || structuralPool[0]?.candidate
     || bandPool[0]?.candidate
     || scored[0]?.candidate
     || scoringPool[0]
@@ -825,6 +886,14 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   if (!best) return { primary: null, secondary: null, candidates: scored.map((entry) => entry.candidate) };
   const bestScore = scored.find(({ candidate }) => isSameRecommendation(candidate, best))?.score ?? scored[0]?.score ?? 0;
   const bestFitsUserBand = isBandFallbackCandidate(best);
+  const bestStructuralFit = Boolean(
+    best &&
+    !isDiscouragedPick(best) &&
+    !isTemplateGoalsPick(best) &&
+    best.bookOdds >= 1.28 &&
+    best.bookOdds <= 1.72 &&
+    best.p >= 0.56
+  );
   const hasStrongAlt = scored.some(({ candidate, score }) => (
     candidate &&
     !isSameRecommendation(candidate, best) &&
@@ -837,6 +906,7 @@ export function buildMatchRecommendationPair(match, getHistEntry) {
   const shouldSuppressPrimary =
     (
       !bestFitsUserBand &&
+      !bestStructuralFit &&
       !isSoftUserCandidate(best) &&
       (
         bestScore < MIN_PRIMARY_SCORE ||

@@ -24,7 +24,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "18";
+const APP_VERSION = "19";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
 
