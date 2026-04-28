@@ -1,0 +1,85 @@
+name: ZBet OddsPapi watchdog fallback
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "20 9 * * *" # Daily 09:20 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zbet-oddspapi-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Check snapshot freshness
+        id: freshness
+        run: node scripts/oddspapi-refresh-watchdog.mjs
+
+      - name: Print watchdog result
+        run: |
+          echo "refresh_needed=${{ steps.freshness.outputs.refresh_needed }}"
+          echo "reason=${{ steps.freshness.outputs.reason }}"
+          echo "generated_at_utc=${{ steps.freshness.outputs.generated_at_utc }}"
+          echo "snapshot_age_hours=${{ steps.freshness.outputs.snapshot_age_hours }}"
+          echo "latest_available_day=${{ steps.freshness.outputs.latest_available_day }}"
+
+      - name: Ensure data folder exists
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: mkdir -p data
+
+      - name: Run odds-by-tournaments fallback
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+          BOOKMAKER: "superbet"
+          VERBOSITY: "2"
+          ODDS_FORMAT: "decimal"
+        run: node scripts/oddspapi-fetch-odds-by-tournaments.js
+
+      - name: Build UI data
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: node scripts/build-ui-data-from-oddspapi.js
+
+      - name: Build UI history stats
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: node scripts/build-ui-history-stats.js
+
+      - name: Build history archive
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: node scripts/build-history-archive.js
+
+      - name: Build backtest summary
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: node scripts/build-backtest-summary.mjs
+
+      - name: Commit fallback outputs
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/oddspapi_odds.json data/oddspapi_odds_index.json || true
+          git add data/oddspapi_odds_parts || true
+          git add data/ui || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "ZBet watchdog OddsPapi fallback refresh"
+          git push
