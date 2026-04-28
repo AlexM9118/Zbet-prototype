@@ -1,0 +1,49 @@
+name: ZBet scheduled tournament catalog refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "40 6 * * 0" # Sun 06:40 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zbet-oddspapi-catalog-refresh
+  cancel-in-progress: false
+
+jobs:
+  tournament_catalog_refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Ensure data folder exists
+        run: mkdir -p data
+
+      - name: Refresh tournament catalog
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+        run: node scripts/oddspapi-fetch-tournaments.js
+
+      - name: Commit tournament catalog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data/oddspapi_tournaments_raw.txt data/oddspapi_tournaments.json || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "ZBet scheduled tournament refresh"
+          git push

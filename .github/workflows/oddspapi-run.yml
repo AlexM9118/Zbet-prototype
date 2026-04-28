@@ -121,6 +121,12 @@ jobs:
         if: ${{ inputs.job == 'odds' || inputs.job == 'build_ui' }}
         run: node scripts/build-backtest-summary.mjs
 
+      - name: Verify snapshot freshness
+        if: ${{ inputs.job == 'odds' }}
+        env:
+          MAX_SNAPSHOT_AGE_HOURS: "30"
+        run: node scripts/verify-odds-snapshot-freshness.mjs
+
       - name: Update admin watchdog status
         if: ${{ inputs.job == 'odds' }}
         env:

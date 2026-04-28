@@ -20,6 +20,8 @@ function main() {
   const refreshSource = String(process.env.REFRESH_SOURCE || "").trim().toLowerCase();
   const fallbackTriggered = String(process.env.FALLBACK_TRIGGERED || "").trim().toLowerCase() === "true";
   const fallbackReason = String(process.env.FALLBACK_REASON || "").trim();
+  const watchdogDecision = String(process.env.WATCHDOG_DECISION || "").trim();
+  const watchdogReason = String(process.env.WATCHDOG_REASON || "").trim();
   const generatedAtUTC = String(matchesPayload.generatedAtUTC || "").trim();
 
   const next = {
@@ -27,7 +29,10 @@ function main() {
     lastSuccessfulRefreshUTC: existing.lastSuccessfulRefreshUTC || "",
     lastSuccessfulRefreshSource: existing.lastSuccessfulRefreshSource || "",
     lastFallbackTriggeredUTC: existing.lastFallbackTriggeredUTC || "",
-    lastFallbackReason: existing.lastFallbackReason || ""
+    lastFallbackReason: existing.lastFallbackReason || "",
+    lastWatchdogCheckUTC: existing.lastWatchdogCheckUTC || "",
+    lastWatchdogDecision: existing.lastWatchdogDecision || "",
+    lastWatchdogReason: existing.lastWatchdogReason || ""
   };
 
   if (refreshSource) {
@@ -38,6 +43,12 @@ function main() {
   if (fallbackTriggered) {
     next.lastFallbackTriggeredUTC = now;
     next.lastFallbackReason = fallbackReason || "Fallback rulat fara motiv explicit.";
+  }
+
+  if (watchdogDecision) {
+    next.lastWatchdogCheckUTC = now;
+    next.lastWatchdogDecision = watchdogDecision;
+    next.lastWatchdogReason = watchdogReason || "";
   }
 
   ensureDir(STATUS_PATH);

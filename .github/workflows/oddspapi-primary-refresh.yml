@@ -1,21 +1,19 @@
-name: ZBet scheduled OddsPapi refresh
+name: ZBet scheduled OddsPapi primary refresh
 
 on:
   workflow_dispatch:
   schedule:
     - cron: "10 6 * * 2,4,6" # Tue/Thu/Sat 06:10 UTC
-    - cron: "40 6 * * 0" # Sun 06:40 UTC
 
 permissions:
   contents: write
 
 concurrency:
-  group: zbet-oddspapi-scheduled
+  group: zbet-oddspapi-primary-refresh
   cancel-in-progress: false
 
 jobs:
   odds_refresh:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.schedule == '10 6 * * 2,4,6' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -50,6 +48,11 @@ jobs:
       - name: Build backtest summary
         run: node scripts/build-backtest-summary.mjs
 
+      - name: Verify snapshot freshness
+        env:
+          MAX_SNAPSHOT_AGE_HOURS: "30"
+        run: node scripts/verify-odds-snapshot-freshness.mjs
+
       - name: Update admin watchdog status
         env:
           REFRESH_SOURCE: "scheduled"
@@ -71,40 +74,4 @@ jobs:
           fi
 
           git commit -m "ZBet scheduled OddsPapi refresh"
-          git push
-
-  tournament_catalog_refresh:
-    if: ${{ github.event.schedule == '40 6 * * 0' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-
-      - name: Ensure data folder exists
-        run: mkdir -p data
-
-      - name: Refresh tournament catalog
-        env:
-          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
-        run: node scripts/oddspapi-fetch-tournaments.js
-
-      - name: Commit tournament catalog
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add data/oddspapi_tournaments_raw.txt data/oddspapi_tournaments.json || true
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "ZBet scheduled tournament refresh"
           git push
