@@ -24,7 +24,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "19";
+const APP_VERSION = "20";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
 
@@ -517,7 +517,7 @@ function bestAvailableMarkets(match) {
 function getTopRecommendedMatches() {
   const days = [...new Set(state.matches.map((match) => String(match.day || "")).filter(Boolean))].sort();
   const currentDay = days[0] || "";
-  const items = state.matches
+  const rankedItems = state.matches
     .filter((match) => String(match.day || "") === currentDay)
     .map((match) => {
       const pair = getRecommendedPair(match);
@@ -540,7 +540,6 @@ function getTopRecommendedMatches() {
       };
     })
     .filter(Boolean)
-    .filter(({ pair }) => Number(pair.primary.bookOdds) >= 1.2 && Number(pair.primary.bookOdds) <= 1.5 && Number(pair.primary.p || 0) >= 0.7)
     .sort((a, b) => {
       const familyRank = (candidate) => {
         const market = String(candidate?.market || "");
@@ -560,8 +559,27 @@ function getTopRecommendedMatches() {
       return a.startTime.localeCompare(b.startTime);
     });
 
-  if (items.length <= 8) return items;
-  return items.slice(0, 10);
+  const premiumItems = rankedItems.filter(({ pair }) => (
+    Number(pair.primary.bookOdds) >= 1.2 &&
+    Number(pair.primary.bookOdds) <= 1.5 &&
+    Number(pair.primary.p || 0) >= 0.7
+  ));
+
+  if (premiumItems.length) {
+    return premiumItems.length <= 8 ? premiumItems : premiumItems.slice(0, 10);
+  }
+
+  const fallbackItems = rankedItems.filter(({ pair }) => (
+    Number(pair.primary.bookOdds) >= 1.2 &&
+    Number(pair.primary.bookOdds) <= 1.62 &&
+    Number(pair.primary.p || 0) >= 0.58
+  ));
+
+  if (fallbackItems.length) {
+    return fallbackItems.length <= 8 ? fallbackItems : fallbackItems.slice(0, 10);
+  }
+
+  return rankedItems.length <= 8 ? rankedItems : rankedItems.slice(0, 10);
 }
 
 function topMatchesIntro(items) {
