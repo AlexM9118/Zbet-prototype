@@ -24,7 +24,7 @@ const state = {
 
 let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const APP_VERSION = "17";
+const APP_VERSION = "18";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
 
@@ -297,35 +297,43 @@ function renderAdminWatchdog() {
   panel.hidden = false;
   panel.innerHTML = `
     <div class="admin-watchdog-head">
-      <div>
+      <div class="admin-watchdog-intro">
         <div class="admin-watchdog-kicker">Admin</div>
-        <div class="admin-watchdog-title">Watchdog refresh</div>
+        <div class="admin-watchdog-title">Control refresh</div>
+        <div class="admin-watchdog-copy">Panoul tau rapid pentru starea feed-ului si a automatizarii, fara zgomot tehnic inutil.</div>
       </div>
+      <div class="admin-watchdog-status">Activ</div>
+    </div>
+    <div class="admin-watchdog-hero">
+      <div class="admin-watchdog-hero-label">Meciuri azi</div>
+      <div class="admin-watchdog-hero-value">${escapeHtml(String(todayMatches))}</div>
+      <div class="admin-watchdog-hero-copy">Evenimente disponibile acum in snapshot-ul activ.</div>
     </div>
     <div class="admin-watchdog-grid">
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Meciuri azi</div>
-        <div class="admin-watchdog-value">${escapeHtml(String(todayMatches))}</div>
-      </article>
-      <article class="admin-watchdog-item">
+      <article class="admin-watchdog-item admin-watchdog-item-wide">
         <div class="admin-watchdog-label">Ultimul refresh reusit</div>
         <div class="admin-watchdog-value">${escapeHtml(formatAdminDateTime(adminStatus.lastSuccessfulRefreshUTC || state.matchesGeneratedAt))}</div>
+        <div class="admin-watchdog-meta">Momentul ultimei actualizari confirmate in datele live din aplicatie.</div>
       </article>
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Sursa ultimului refresh</div>
         <div class="admin-watchdog-value">${escapeHtml(formatRefreshSource(adminStatus.lastSuccessfulRefreshSource))}</div>
+        <div class="admin-watchdog-meta">Programat, manual sau fallback watchdog.</div>
       </article>
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Fallback</div>
         <div class="admin-watchdog-value">${escapeHtml(fallbackLabel)}</div>
+        <div class="admin-watchdog-meta">Intervine doar cand refresh-ul principal ramane in urma.</div>
       </article>
-      <article class="admin-watchdog-item">
+      <article class="admin-watchdog-item admin-watchdog-item-wide">
         <div class="admin-watchdog-label">Motiv fallback</div>
         <div class="admin-watchdog-value">${escapeHtml(fallbackReason)}</div>
+        <div class="admin-watchdog-meta">Explicatia exacta pentru ultima interventie automata, daca a fost nevoie.</div>
       </article>
       <article class="admin-watchdog-item">
         <div class="admin-watchdog-label">Admin mode</div>
         <div class="admin-watchdog-value">Activ pe acest dispozitiv</div>
+        <div class="admin-watchdog-meta">Vizibil doar pe dispozitivul pe care ai activat modul admin.</div>
       </article>
     </div>
   `;
