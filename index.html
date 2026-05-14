@@ -6,261 +6,218 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#08111b" />
+  <meta name="theme-color" content="#101820" />
   <title>ZBet</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=23" />
+  <link rel="manifest" href="./manifest.webmanifest?v=24" />
   <link rel="apple-touch-icon" href="./icons/app-icon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=23" />
+  <link rel="stylesheet" href="./styles.css?v=24" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
     <div>
       <div class="update-banner-title">Exista o versiune noua</div>
-      <div class="update-banner-copy">Apasa mai jos pentru a actualiza aplicatia.</div>
+      <div class="update-banner-copy">Apasa pentru a reincarca aplicatia cu cea mai noua interfata.</div>
     </div>
-    <button id="applyUpdateBtn" class="btn btn-primary" type="button">Actualizeaza</button>
+    <button id="applyUpdateBtn" class="primary-button" type="button">Actualizeaza</button>
   </div>
 
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-block">
-        <img src="./icons/zbet-logo.svg" alt="ZBet" class="brand-logo" />
-        <div class="brand-copy">
-          <div class="brand-name">ZBet</div>
-          <button id="adminModeTrigger" class="brand-tag" type="button">Smarter Football Picks</button>
-        </div>
-      </div>
-      <div class="brand-actions">
-        <button id="modelInfoBtn" class="icon-btn" type="button" aria-label="Informatii model">
-          <span class="icon-btn-mark">i</span>
-        </button>
-        <button id="searchToggleBtn" class="icon-btn" type="button" aria-label="Cauta meci">
-          <span class="search-toggle-icon" aria-hidden="true"></span>
-        </button>
-      </div>
-    </header>
-
-    <section id="searchOverlay" class="search-overlay" hidden>
-      <label class="field search-overlay-field">
-        <span class="field-label">Cauta meci sau echipa</span>
-        <input id="searchInput" type="text" placeholder="Ex: FCSB" autocomplete="off" />
-      </label>
-      <div id="searchResults" class="search-results" hidden></div>
-    </section>
-
-    <nav class="app-tabs" aria-label="Zone principale">
-      <button id="tabAnalyzerBtn" class="app-tab is-active" type="button">Analiza meci</button>
-      <button id="tabRadarBtn" class="app-tab" type="button">Radarul zilei</button>
-    </nav>
-
-    <main class="layout">
-      <aside id="controlPanel" class="panel panel-control">
-        <div class="control-hero-grid">
-          <div class="control-main">
-            <div class="panel-kicker">Match Oracle</div>
-            <h1>Construieste analiza meciului, piata cu piata.</h1>
-            <p class="panel-copy">Alegi competitia, alegi meciul sau toata etapa, iar ZBet iti construieste tabloul complet: recomandari, probabilitati, matrice BET/AVOID si power ranking recent.</p>
-            <div id="dataStatusNotice" class="data-status" hidden></div>
-
-            <label class="field">
-              <span class="field-label">Competitie</span>
-              <select id="leagueSelect"></select>
-            </label>
-
-            <label class="field">
-              <span class="field-label">Meci</span>
-              <select id="matchSelect"></select>
-              <span id="matchSelectHint" class="field-hint">Selecteaza mai intai competitia, apoi alegem daca analizam un meci sau toata etapa.</span>
-            </label>
-
-            <div class="action-stack">
-              <button id="analyzeMatchBtn" class="btn btn-primary" type="button">Analizeaza meciul</button>
-              <button id="analyzeLeagueBtn" class="btn btn-secondary" type="button">Analizeaza toata etapa</button>
-              <button id="clearSelectionBtn" class="btn btn-ghost" type="button">Reseteaza selectia</button>
+  <div class="phone-shell">
+    <div class="phone-frame">
+      <header class="mobile-header">
+        <div class="header-main">
+          <button id="backFromDetailBtn" class="header-icon back-icon" type="button" hidden aria-label="Inapoi">‹</button>
+          <div class="brand-lockup">
+            <div class="brand-mark">
+              <img src="./icons/zbet-logo.svg" alt="ZBet" />
             </div>
-          </div>
-
-          <div class="control-preview">
-            <div class="section-head section-head-tight">
-              <div>
-                <div class="panel-kicker">Dashboard Preview</div>
-                <h3>Ce construieste ZBet</h3>
-              </div>
+            <div class="brand-copy">
+              <div class="brand-name">ZBet</div>
+              <button id="adminModeTrigger" class="brand-subtitle" type="button">Predictii si statistici fotbal</button>
             </div>
-            <div class="preview-stats">
-              <article class="preview-stat">
-                <span>Competitii</span>
-                <strong id="snapshotLeagueCount">—</strong>
-              </article>
-              <article class="preview-stat">
-                <span>Meciuri in snapshot</span>
-                <strong id="snapshotMatchCount">—</strong>
-              </article>
-              <article class="preview-stat">
-                <span>Ultima zi</span>
-                <strong id="snapshotLatestDay">—</strong>
-              </article>
-            </div>
-            <div class="preview-market-board">
-              <div class="preview-market-row">
-                <span>1X2 FT</span>
-                <span class="preview-badge bet">BET</span>
-              </div>
-              <div class="preview-market-row">
-                <span>Double Chance</span>
-                <span class="preview-badge watch">WATCH</span>
-              </div>
-              <div class="preview-market-row">
-                <span>Ambele marcheaza</span>
-                <span class="preview-badge bet">BET</span>
-              </div>
-              <div class="preview-market-row">
-                <span>Over / Under</span>
-                <span class="preview-badge watch">WATCH</span>
-              </div>
-              <div class="preview-market-row">
-                <span>Cornere / Cartonase</span>
-                <span class="preview-badge avoid">AVOID</span>
-              </div>
-            </div>
-            <p class="section-copy">Board-ul de mai sus este doar preview-ul zonei de analiza. Dupa selectie, ZBet il inlocuieste cu datele reale pentru meciul ales.</p>
           </div>
         </div>
-      </aside>
+        <div class="header-actions">
+          <button id="modelInfoBtn" class="header-icon" type="button" aria-label="Informatii model">i</button>
+          <button id="searchToggleBtn" class="header-icon" type="button" aria-label="Cauta">
+            <span class="search-toggle-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+      </header>
 
-      <section class="content-shell">
-        <section id="stagePanel" class="panel panel-stage" hidden>
-          <div class="section-head">
-            <div>
-              <div class="panel-kicker">Etapa curenta</div>
-              <h2 id="stageTitle">Etapa curenta</h2>
-              <p id="stageSubtitle" class="section-copy">Toate meciurile competitiei selectate, fiecare cu directie rapida de joc.</p>
-            </div>
-            <div id="stageCount" class="section-pill">0 meciuri</div>
-          </div>
-          <div id="stageGrid" class="stage-grid"></div>
-        </section>
-
-        <section id="analysisPanel" class="panel panel-analysis" hidden>
-          <div class="analysis-top-grid">
-            <div id="matchHero" class="match-hero"></div>
-            <aside class="panel panel-inline league-table-panel">
-              <div class="section-head section-head-tight">
-                <div>
-                  <div class="panel-kicker">League Snapshot</div>
-                  <h3>Tabela ligii</h3>
-                </div>
-              </div>
-              <div class="league-table-head">
-                <span>#</span>
-                <span>Echipa</span>
-                <span>GF</span>
-                <span>GA</span>
-                <span>Pulse</span>
-              </div>
-              <div id="leagueTableBody" class="league-table-body"></div>
-            </aside>
-          </div>
-
-          <div class="analysis-overview">
-            <article class="pick-card pick-card-primary">
-              <div class="pick-card-kicker">Best Bet</div>
-              <div id="bestBetBody"></div>
-            </article>
-            <article class="pick-card pick-card-secondary">
-              <div class="pick-card-kicker">Plan B</div>
-              <div id="planBBody"></div>
-            </article>
-            <article class="panel panel-inline reason-panel">
-              <div class="pick-card-kicker">Why this pick</div>
-              <div id="reasonList" class="reason-list"></div>
-            </article>
-          </div>
-
-          <section class="panel panel-inline matrix-panel">
-            <div class="section-head section-head-tight">
-              <div>
-                <div class="panel-kicker">Recommend Tips</div>
-                <h3>Matricea BET / WATCH / AVOID</h3>
-              </div>
-            </div>
-            <div id="matrixGrid" class="matrix-grid"></div>
-          </section>
-
-          <section class="panel panel-inline">
-            <div class="section-head section-head-tight">
-              <div>
-                <div class="panel-kicker">Market Board</div>
-                <h3>Tabloul complet al pietelor</h3>
-              </div>
-            </div>
-            <div id="marketGroupsGrid" class="market-groups-grid"></div>
-          </section>
-
-          <section class="analysis-bottom">
-            <article class="panel panel-inline">
-              <div class="section-head section-head-tight">
-                <div>
-                  <div class="panel-kicker">Forma recenta</div>
-                  <h3>Gazde vs Oaspeti</h3>
-                </div>
-              </div>
-              <div id="formGrid" class="form-grid"></div>
-            </article>
-
-            <article class="panel panel-inline">
-              <div class="section-head section-head-tight">
-                <div>
-                  <div class="panel-kicker">League Pulse</div>
-                  <h3>Power ranking recent</h3>
-                  <p class="section-copy">Nu este clasament oficial, ci ierarhie de forma recenta si forta statistica.</p>
-                </div>
-              </div>
-              <div class="ranking-head">
-                <span>#</span>
-                <span>Echipa</span>
-                <span>GF</span>
-                <span>GA</span>
-                <span>Corn</span>
-                <span>Pulse</span>
-              </div>
-              <div id="powerRankingBody" class="ranking-body"></div>
-            </article>
-          </section>
-        </section>
-
-        <section id="radarPanel" class="panel panel-radar" hidden>
-          <div class="section-head">
-            <div>
-              <div class="panel-kicker">Ziua curenta din snapshot</div>
-              <h2>Radarul zilei</h2>
-              <p id="radarLabel" class="section-copy">Selectiile puternice ale zilei, comprimate pentru scanare rapida.</p>
-            </div>
-            <div id="radarCount" class="section-pill">0 meciuri</div>
-          </div>
-          <div id="radarGrid" class="radar-grid"></div>
-        </section>
+      <section id="searchDrawer" class="search-drawer" hidden>
+        <label class="search-field">
+          <span class="search-label">Cauta echipa sau meci</span>
+          <input id="searchInput" type="text" placeholder="Ex: FCSB, Arsenal, Barcelona" autocomplete="off" />
+        </label>
+        <div id="searchResults" class="search-results" hidden></div>
       </section>
-    </main>
+
+      <main class="app-stage">
+        <section id="dashboardScreen" class="screen-section">
+          <div class="screen-header">
+            <div>
+              <div class="screen-title">Dashboard</div>
+              <div id="dashboardSubtitle" class="screen-subtitle">Panoul principal al zilei</div>
+            </div>
+            <button id="openMatchesFromDashboardBtn" class="tiny-action" type="button">Vezi toate</button>
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Meciuri in snapshot</span>
+              <strong id="dashboardMatchCount">—</strong>
+            </article>
+            <article class="summary-card">
+              <span>Acuratete recenta</span>
+              <strong id="dashboardAccuracy">—</strong>
+            </article>
+          </div>
+
+          <section class="dashboard-card featured-card">
+            <div class="dashboard-card-head">
+              <div>
+                <div class="dashboard-card-kicker">Meci featured</div>
+                <h2 id="featuredMatchTitle">Se incarca…</h2>
+                <div id="featuredMatchMeta" class="dashboard-card-meta">—</div>
+              </div>
+              <div id="featuredMatchPulse" class="pulse-chip">—</div>
+            </div>
+
+            <div class="featured-scoreline">
+              <div class="team-badge">
+                <div id="featuredHomeBadge" class="team-badge-mark">H</div>
+                <span id="featuredHomeName">Gazde</span>
+              </div>
+              <div class="versus-badge">VS</div>
+              <div class="team-badge">
+                <div id="featuredAwayBadge" class="team-badge-mark">A</div>
+                <span id="featuredAwayName">Oaspeti</span>
+              </div>
+            </div>
+
+            <div class="pick-stack">
+              <article class="pick-panel pick-panel-primary">
+                <div class="pick-panel-label">Best Bet</div>
+                <div id="featuredPrimaryPick" class="pick-panel-title">—</div>
+                <div id="featuredPrimaryMeta" class="pick-panel-meta">—</div>
+              </article>
+              <article class="pick-panel pick-panel-secondary">
+                <div class="pick-panel-label">Plan B</div>
+                <div id="featuredSecondaryPick" class="pick-panel-title">—</div>
+                <div id="featuredSecondaryMeta" class="pick-panel-meta">—</div>
+              </article>
+            </div>
+
+            <div class="hero-metrics-row">
+              <div class="hero-mini-stat">
+                <span>Goluri est.</span>
+                <strong id="featuredExpectedGoals">—</strong>
+              </div>
+              <div class="hero-mini-stat">
+                <span>Cornere est.</span>
+                <strong id="featuredExpectedCorners">—</strong>
+              </div>
+              <div class="hero-mini-stat">
+                <span>Cartonase est.</span>
+                <strong id="featuredExpectedCards">—</strong>
+              </div>
+            </div>
+
+            <button id="openFeaturedDetailBtn" class="primary-button full-width" type="button">Vezi toate statisticile</button>
+          </section>
+
+          <section class="dashboard-card">
+            <div class="dashboard-card-head compact-head">
+              <div>
+                <div class="dashboard-card-kicker">Top ligi</div>
+                <h3>Ligi disponibile</h3>
+              </div>
+              <span id="leagueCountBadge" class="count-pill">—</span>
+            </div>
+            <div id="leagueList" class="league-list"></div>
+          </section>
+        </section>
+
+        <section id="matchesScreen" class="screen-section" hidden>
+          <div class="screen-header">
+            <div>
+              <div class="screen-title">Meciuri</div>
+              <div id="matchesSubtitle" class="screen-subtitle">Lista zilei si competitiile active</div>
+            </div>
+            <button id="resetLeagueFilterBtn" class="tiny-action" type="button">Reset</button>
+          </div>
+
+          <div class="segmented-row">
+            <button class="segment is-active" data-filter="latest" type="button">Ultima zi</button>
+            <button class="segment" data-filter="all" type="button">Toate</button>
+            <button class="segment" data-filter="featured" type="button">Featured</button>
+          </div>
+
+          <div id="snapshotNotice" class="snapshot-notice"></div>
+
+          <div id="leagueChipRow" class="league-chip-row"></div>
+          <div id="matchesList" class="matches-list"></div>
+        </section>
+
+        <section id="detailScreen" class="screen-section" hidden>
+          <div class="screen-header detail-header">
+            <div>
+              <div id="detailLeagueLabel" class="screen-title">Detalii meci</div>
+              <div id="detailKickoffLabel" class="screen-subtitle">—</div>
+            </div>
+            <button id="detailOpenInMatchesBtn" class="tiny-action" type="button">Lista meciuri</button>
+          </div>
+
+          <section class="detail-hero-card">
+            <div class="detail-hero-top">
+              <div class="detail-team-block">
+                <div id="detailHomeBadge" class="detail-team-mark">H</div>
+                <span id="detailHomeName">Gazde</span>
+              </div>
+              <div class="detail-versus">VS</div>
+              <div class="detail-team-block">
+                <div id="detailAwayBadge" class="detail-team-mark">A</div>
+                <span id="detailAwayName">Oaspeti</span>
+              </div>
+            </div>
+
+            <div class="detail-tab-row">
+              <button class="detail-tab is-active" data-detail-tab="overview" type="button">Prezentare</button>
+              <button class="detail-tab" data-detail-tab="stats" type="button">Statistici</button>
+              <button class="detail-tab" data-detail-tab="compare" type="button">Comparatie</button>
+            </div>
+
+            <div id="detailOverviewTab" class="detail-tab-panel"></div>
+            <div id="detailStatsTab" class="detail-tab-panel" hidden></div>
+            <div id="detailCompareTab" class="detail-tab-panel" hidden></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <button id="navDashboardBtn" class="bottom-nav-item is-active" type="button">
+          <span class="bottom-nav-icon">⌂</span>
+          <span>Dashboard</span>
+        </button>
+        <button id="navMatchesBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon">≣</span>
+          <span>Meciuri</span>
+        </button>
+        <button id="navDetailBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon">◎</span>
+          <span>Detalii</span>
+        </button>
+      </nav>
+    </div>
   </div>
 
   <div id="modelSummaryModal" class="modal-shell" hidden>
     <div id="modelSummaryBackdrop" class="modal-backdrop"></div>
-    <section class="modal-card modal-card-summary" role="dialog" aria-modal="true" aria-labelledby="modelSummaryTitle">
-      <button id="closeModelSummaryBtn" class="modal-close" type="button" aria-label="Inchide">x</button>
-      <div class="panel-kicker">Model recent</div>
-      <h2 id="modelSummaryTitle">Rata recenta <span id="modelRateChip">—</span></h2>
-      <p id="modelPopoverCopy" class="panel-copy">Rezumat rapid al performantelor recente.</p>
-      <div class="action-row">
-        <button id="modelDetailsBtn" class="btn btn-secondary" type="button">Mai mult</button>
-      </div>
-    </section>
-  </div>
-
-  <div id="modelDetailsModal" class="modal-shell" hidden>
-    <div id="modelDetailsBackdrop" class="modal-backdrop"></div>
-    <section class="modal-card modal-card-details" role="dialog" aria-modal="true" aria-label="Detalii model">
-      <button id="closeModelDetailsBtn" class="modal-close" type="button" aria-label="Inchide">x</button>
+    <section class="modal-card" role="dialog" aria-modal="true">
+      <button id="closeModelSummaryBtn" class="modal-close" type="button" aria-label="Inchide">×</button>
+      <div class="modal-kicker">Model recent</div>
+      <h2>Rata recenta <span id="modelRateChip">—</span></h2>
+      <p id="modelPopoverCopy" class="modal-copy">Rezumat rapid al performantelor recente.</p>
       <div id="backtestSummary" class="backtest-summary"></div>
       <div id="backtestMarkets" class="backtest-markets"></div>
     </section>
@@ -268,15 +225,13 @@
 
   <div id="adminWatchdogModal" class="modal-shell" hidden>
     <div id="adminWatchdogBackdrop" class="modal-backdrop"></div>
-    <section class="modal-card modal-card-details admin-watchdog-modal-card" role="dialog" aria-modal="true" aria-label="Watchdog admin">
-      <button id="closeAdminWatchdogBtn" class="modal-close" type="button" aria-label="Inchide">x</button>
+    <section class="modal-card" role="dialog" aria-modal="true">
+      <button id="closeAdminWatchdogBtn" class="modal-close" type="button" aria-label="Inchide">×</button>
       <div id="adminWatchdogPanel" class="admin-watchdog"></div>
-      <div class="action-row">
-        <button id="disableAdminModeBtn" class="btn btn-secondary" type="button">Dezactiveaza admin mode</button>
-      </div>
+      <button id="disableAdminModeBtn" class="secondary-button full-width" type="button">Dezactiveaza admin mode</button>
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=23"></script>
+  <script type="module" src="./app.mjs?v=24"></script>
 </body>
 </html>

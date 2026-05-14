@@ -1,9 +1,10 @@
-import { getJson, fmtOdds, fmtDayLong, fmtTime, pct01, escapeHtml } from "./js/utils.mjs";
+import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const TEAM_DISPLAY_ALIASES = {
-  "Fotbal Club FCSB": "FCSB"
-};
+const APP_VERSION = "24";
+const UPDATE_BANNER_DISMISSED_KEY = "zbet-mobile-update-dismissed";
+const ADMIN_MODE_STORAGE_KEY = "zbet-mobile-admin-mode";
+const ADMIN_MODE_CODE = "18111991";
 
 const state = {
   matches: [],
@@ -13,48 +14,34 @@ const state = {
   adminWatchdogStatus: null,
   matchesGeneratedAt: "",
   latestAvailableDay: "",
-  adminMode: false,
+  activeScreen: "dashboard",
+  matchFilter: "latest",
   selectedLeague: "",
   selectedFixtureId: "",
-  activeTab: "analyzer",
-  leagueMode: false,
-  analysisVisible: false,
+  detailTab: "overview",
   searchTerm: "",
-  leagueStatsCache: new Map()
+  adminMode: false
 };
 
 let pendingWorker = null;
-const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
-const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
-const ADMIN_MODE_CODE = "18111991";
-const APP_VERSION = "23";
 
 const el = (id) => document.getElementById(id);
-
-function displayTeamName(name) {
-  const raw = String(name || "").trim();
-  return TEAM_DISPLAY_ALIASES[raw] || raw;
-}
 
 function toDayStamp(day) {
   const time = new Date(`${day}T12:00:00`).getTime();
   return Number.isFinite(time) ? time : 0;
 }
 
-function toLocalDayString(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function displayTeamName(name) {
+  return String(name || "").trim();
 }
 
-function isUpcomingMatch(match) {
-  const start = new Date(String(match?.startTime || "")).getTime();
-  const matchDay = String(match?.day || "");
-  return Boolean(
-    (Number.isFinite(start) && start >= Date.now()) ||
-    (matchDay && toDayStamp(matchDay) >= toDayStamp(toLocalDayString()))
-  );
+function initialsFor(name) {
+  const words = String(name || "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  return words.slice(0, 2).map((word) => word[0]?.toUpperCase() || "").join("") || "FB";
 }
 
 function getLatestAvailableDay(matches) {
@@ -63,43 +50,95 @@ function getLatestAvailableDay(matches) {
     .slice(-1)[0] || "";
 }
 
-function getDataStatus() {
-  const today = toLocalDayString();
+function groupMatchesByLeague(matches) {
+  const map = new Map();
+  for (const match of matches) {
+    const key = String(match.tournamentId || "");
+    if (!map.has(key)) {
+      map.set(key, {
+        id: key,
+        tournamentId: String(match.tournamentId || ""),
+        label: `${match.categoryName} • ${match.tournamentName}`,
+        categoryName: match.categoryName,
+        tournamentName: match.tournamentName,
+        matches: []
+      });
+    }
+    map.get(key).matches.push(match);
+  }
+  return [...map.values()].sort((left, right) => right.matches.length - left.matches.length || left.label.localeCompare(right.label));
+}
+
+function getLeagueCatalog() {
+  const grouped = groupMatchesByLeague(state.matches);
+  if (!state.catalogLeagues.length) return grouped;
+  const groupedMap = new Map(grouped.map((league) => [league.id, league]));
+  const catalog = state.catalogLeagues.map((league) => {
+    const id = String(league.id ?? league.tournamentId ?? "");
+    const fallbackLabel = [league.categoryName, league.name].filter(Boolean).join(" • ") || `Competitie ${id}`;
+    return {
+      id,
+      tournamentId: id,
+      label: fallbackLabel,
+      categoryName: league.categoryName || "",
+      tournamentName: league.name || "",
+      matches: groupedMap.get(id)?.matches || []
+    };
+  });
+  for (const league of grouped) {
+    if (!catalog.some((item) => item.id === league.id)) catalog.push(league);
+  }
+  return catalog.sort((left, right) => right.matches.length - left.matches.length || left.label.localeCompare(right.label));
+}
+
+function getHistEntry(fixtureId) {
+  return state.historyByFixtureId[String(fixtureId)] || null;
+}
+
+function findMatchByFixtureId(fixtureId) {
+  return state.matches.find((match) => String(match.fixtureId) === String(fixtureId)) || null;
+}
+
+function getLeagueMatches(leagueId) {
+  return getLeagueCatalog().find((league) => league.id === String(leagueId))?.matches || [];
+}
+
+function getAnalysis(match) {
+  if (!match) return null;
+  const historyEntry = getHistEntry(match.fixtureId);
+  if (!historyEntry) return null;
+  return buildMatchAnalysis(match, historyEntry, null);
+}
+
+function scoreAnalysis(analysis) {
+  const primary = analysis?.primary;
+  if (!primary) return -999;
+  let score = Number(primary.probability || 0) * 4;
+  if (Number(primary.displayOdds) >= 1.2 && Number(primary.displayOdds) <= 1.55) score += 0.45;
+  if (analysis?.secondary) score += 0.18;
+  if (primary.family === "oneXtwo") score += 0.24;
+  if (primary.family === "doubleChance") score += 0.16;
+  if (primary.family === "corners" || primary.family === "cards") score += 0.12;
+  return score;
+}
+
+function getFeaturedMatch() {
   const latestDay = state.latestAvailableDay || "";
-  const hasUpcoming = Array.isArray(state.matches) && state.matches.length > 0;
-  const latestDayStale = latestDay ? toDayStamp(latestDay) < toDayStamp(today) : false;
-  const generatedAt = state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt) : null;
-  const ageHours = generatedAt && Number.isFinite(generatedAt.getTime())
-    ? Math.max(0, Math.round((Date.now() - generatedAt.getTime()) / 3600000))
-    : null;
-  const generatedLabel = generatedAt && Number.isFinite(generatedAt.getTime())
-    ? generatedAt.toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" })
-    : "";
-  const agedSnapshot = ageHours != null && ageHours >= 24;
-
-  if (!hasUpcoming && latestDay) {
-    return {
-      stale: true,
-      message: `Snapshot activ: ${fmtDayLong(latestDay)}${generatedLabel ? ` • generat la ${generatedLabel}` : ""}. Pentru meciuri mai noi este necesar un refresh al feed-ului.`
-    };
+  const candidates = state.matches.filter((match) => String(match.day || "") === latestDay);
+  let best = null;
+  for (const match of candidates) {
+    const analysis = getAnalysis(match);
+    const score = scoreAnalysis(analysis);
+    if (!best || score > best.score) best = { match, score };
   }
+  return best?.match || candidates[0] || state.matches[0] || null;
+}
 
-  if (latestDayStale) {
-    return {
-      stale: true,
-      message: `Aplicatia foloseste momentan snapshot-ul din ${fmtDayLong(latestDay)}${generatedLabel ? ` • generat la ${generatedLabel}` : ""}.`
-    };
-  }
-
-  if (agedSnapshot) {
-    return {
-      stale: false,
-      warn: true,
-      message: `Snapshot-ul curent este mai vechi de 24h${generatedLabel ? ` • ultima generare ${generatedLabel}` : ""}. Pot lipsi unele meciuri sau actualizari.`
-    };
-  }
-
-  return { stale: false, message: "" };
+function selectFeaturedMatchIfNeeded() {
+  if (state.selectedFixtureId) return;
+  const featured = getFeaturedMatch();
+  if (!featured) return;
+  state.selectedFixtureId = String(featured.fixtureId);
 }
 
 function showUpdateBanner() {
@@ -116,7 +155,6 @@ function hideUpdateBanner() {
 
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-
   const registration = await navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`);
 
   const trackInstalling = (worker) => {
@@ -139,39 +177,16 @@ async function registerServiceWorker() {
     showUpdateBanner();
   }
 
-  registration.update().catch(() => {});
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     window.localStorage.removeItem(UPDATE_BANNER_DISMISSED_KEY);
     window.location.reload();
   });
 }
 
-function bindPress(id, handler) {
-  const node = el(id);
-  if (!node) return;
-
-  let touchHandledUntil = 0;
-
-  node.addEventListener("pointerup", (event) => {
-    if (event.pointerType === "mouse") return;
-    touchHandledUntil = Date.now() + 450;
-    event.preventDefault();
-    handler(event);
-  });
-
-  node.addEventListener("click", (event) => {
-    if (Date.now() < touchHandledUntil) return;
-    handler(event);
-  });
-}
-
 function setAdminMode(enabled) {
   state.adminMode = Boolean(enabled);
-  if (state.adminMode) {
-    window.localStorage.setItem(ADMIN_MODE_STORAGE_KEY, "true");
-  } else {
-    window.localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
-  }
+  if (enabled) window.localStorage.setItem(ADMIN_MODE_STORAGE_KEY, "true");
+  else window.localStorage.removeItem(ADMIN_MODE_STORAGE_KEY);
 }
 
 function restoreAdminMode() {
@@ -196,621 +211,388 @@ function formatRefreshSource(source) {
 function renderAdminWatchdog() {
   const panel = el("adminWatchdogPanel");
   if (!panel) return;
-  if (!state.adminMode) {
+  const status = state.adminWatchdogStatus || {};
+  panel.innerHTML = `
+    <div class="admin-watchdog-item">
+      <div class="admin-watchdog-label">Meciuri in snapshot</div>
+      <div class="admin-watchdog-value">${escapeHtml(String(state.matches.length || 0))}</div>
+      <div class="admin-watchdog-meta">Ultima zi disponibila: ${escapeHtml(state.latestAvailableDay || "N/A")}</div>
+    </div>
+    <div class="admin-watchdog-item">
+      <div class="admin-watchdog-label">Ultimul refresh reusit</div>
+      <div class="admin-watchdog-value">${escapeHtml(formatAdminDateTime(status.lastSuccessfulRefreshUTC || state.matchesGeneratedAt))}</div>
+      <div class="admin-watchdog-meta">Sursa: ${escapeHtml(formatRefreshSource(status.lastSuccessfulRefreshSource))}</div>
+    </div>
+    <div class="admin-watchdog-item">
+      <div class="admin-watchdog-label">Motiv fallback</div>
+      <div class="admin-watchdog-meta">${escapeHtml(status.lastFallbackReason || "N/A")}</div>
+    </div>
+  `;
+}
+
+function getSnapshotNotice() {
+  if (!state.latestAvailableDay) return "Snapshot indisponibil momentan.";
+  const generatedLabel = state.matchesGeneratedAt
+    ? new Date(state.matchesGeneratedAt).toLocaleString("ro-RO", { dateStyle: "medium", timeStyle: "short" })
+    : "";
+  return `Aplicatia foloseste momentan snapshot-ul din ${fmtDayLong(state.latestAvailableDay)}${generatedLabel ? ` • generat la ${generatedLabel}` : ""}.`;
+}
+
+function buildSearchPool() {
+  return state.matches.filter((match) => {
+    if (!state.searchTerm) return false;
+    const haystack = `${match.home} ${match.away} ${match.categoryName} ${match.tournamentName}`.toLowerCase();
+    return haystack.includes(state.searchTerm.toLowerCase());
+  }).slice(0, 8);
+}
+
+function renderSearchResults() {
+  const panel = el("searchResults");
+  if (!panel) return;
+  if (!state.searchTerm.trim()) {
     panel.hidden = true;
     panel.innerHTML = "";
     return;
   }
 
-  const adminStatus = state.adminWatchdogStatus || {};
-  const snapshotDay = state.latestAvailableDay || "N/A";
-  const fallbackTriggered = Boolean(adminStatus.lastFallbackTriggeredUTC);
+  const results = buildSearchPool();
   panel.hidden = false;
-  panel.innerHTML = `
-    <div class="admin-modal-kicker">Admin</div>
-    <div class="admin-modal-title">Control refresh</div>
-    <div class="admin-watchdog-grid">
-      <article class="admin-watchdog-item admin-watchdog-item-hero">
-        <div class="admin-watchdog-label">Meciuri in snapshot</div>
-        <div class="admin-watchdog-value">${escapeHtml(String(state.matches.length))}</div>
-        <div class="admin-watchdog-meta">Ultima zi disponibila: ${escapeHtml(snapshotDay)}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Ultimul refresh reusit</div>
-        <div class="admin-watchdog-value">${escapeHtml(formatAdminDateTime(adminStatus.lastSuccessfulRefreshUTC || state.matchesGeneratedAt))}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Sursa ultimului refresh</div>
-        <div class="admin-watchdog-value">${escapeHtml(formatRefreshSource(adminStatus.lastSuccessfulRefreshSource))}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Fallback</div>
-        <div class="admin-watchdog-value">${fallbackTriggered ? "Activat" : "Nu a fost nevoie"}</div>
-      </article>
-      <article class="admin-watchdog-item admin-watchdog-item-wide">
-        <div class="admin-watchdog-label">Motiv fallback</div>
-        <div class="admin-watchdog-value">${escapeHtml(adminStatus.lastFallbackReason || "N/A")}</div>
-      </article>
-      <article class="admin-watchdog-item">
-        <div class="admin-watchdog-label">Admin mode</div>
-        <div class="admin-watchdog-value">Activ pe acest dispozitiv</div>
-      </article>
-    </div>
-  `;
-}
-
-function openAdminWatchdogModal() {
-  renderAdminWatchdog();
-  el("adminWatchdogModal").hidden = false;
-}
-
-function closeAdminWatchdogModal() {
-  el("adminWatchdogModal").hidden = true;
-}
-
-function groupMatchesByLeague(matches) {
-  const map = new Map();
-  for (const match of matches) {
-    const id = String(match.tournamentId);
-    if (!map.has(id)) {
-      map.set(id, {
-        id,
-        label: `${match.categoryName} • ${match.tournamentName}`,
-        matches: []
-      });
-    }
-    map.get(id).matches.push(match);
-  }
-  return Array.from(map.values()).sort((left, right) => left.label.localeCompare(right.label));
-}
-
-function getLeagueCatalog() {
-  const grouped = groupMatchesByLeague(state.matches);
-  const groupedMap = new Map(grouped.map((league) => [league.id, league]));
-
-  const catalog = Array.isArray(state.catalogLeagues) && state.catalogLeagues.length
-    ? state.catalogLeagues.map((league) => {
-      const id = String(league.id ?? league.tournamentId ?? "");
-      const fallbackLabel = [league.categoryName, league.name].filter(Boolean).join(" • ") || `Competitie ${id}`;
-      return {
-        id,
-        label: fallbackLabel,
-        matches: groupedMap.get(id)?.matches || []
-      };
-    })
-    : grouped;
-
-  for (const league of grouped) {
-    if (!catalog.some((entry) => entry.id === league.id)) {
-      catalog.push(league);
-    }
-  }
-
-  return catalog.sort((left, right) => left.label.localeCompare(right.label));
-}
-
-function getCurrentRoundMatches(matches) {
-  if (!Array.isArray(matches) || !matches.length) return [];
-  const uniqueDays = [...new Set(matches.map((match) => String(match.day || "")).filter(Boolean))]
-    .sort((left, right) => toDayStamp(left) - toDayStamp(right));
-  if (!uniqueDays.length) return matches;
-
-  const roundDays = [uniqueDays[uniqueDays.length - 1]];
-  for (let index = uniqueDays.length - 2; index >= 0; index -= 1) {
-    const previous = toDayStamp(uniqueDays[index + 1]);
-    const current = toDayStamp(uniqueDays[index]);
-    const gapDays = Math.round((current - previous) / 86400000);
-    if (Math.abs(gapDays) > 2) break;
-    roundDays.unshift(uniqueDays[index]);
-  }
-
-  const roundSet = new Set(roundDays);
-  return matches.filter((match) => roundSet.has(String(match.day || "")));
-}
-
-function findMatchByFixtureId(fixtureId) {
-  return state.matches.find((match) => String(match.fixtureId) === String(fixtureId)) || null;
-}
-
-function getHistEntry(fixtureId) {
-  return state.historyByFixtureId[String(fixtureId)] || null;
-}
-
-function getLeagueMatches(leagueId) {
-  return getLeagueCatalog().find((league) => league.id === String(leagueId))?.matches || [];
-}
-
-function getLeagueStatsCode(leagueId, fixtureId = "") {
-  const fromFixture = fixtureId ? getHistEntry(fixtureId)?.footballDataId : "";
-  if (fromFixture) return String(fromFixture);
-  const leagueMatches = getLeagueMatches(leagueId);
-  const code = leagueMatches
-    .map((match) => getHistEntry(match.fixtureId)?.footballDataId)
-    .find(Boolean);
-  return code ? String(code) : "";
-}
-
-async function ensureLeagueStats(leagueId, fixtureId = "") {
-  const code = getLeagueStatsCode(leagueId, fixtureId);
-  if (!code) return null;
-  if (state.leagueStatsCache.has(code)) return state.leagueStatsCache.get(code);
-  const payload = await getJson(`./data/stats/${code}.json`).catch(() => null);
-  state.leagueStatsCache.set(code, payload);
-  return payload;
-}
-
-function getSelectedLeagueStats() {
-  const code = getLeagueStatsCode(state.selectedLeague, state.selectedFixtureId);
-  return code ? state.leagueStatsCache.get(code) || null : null;
-}
-
-function getAnalysis(match) {
-  if (!match) return null;
-  return buildMatchAnalysis(match, getHistEntry(match.fixtureId), getSelectedLeagueStats());
-}
-
-function formatOutcomeBadge(verdict) {
-  if (verdict === "bet") return "BET";
-  if (verdict === "watch") return "WATCH";
-  return "AVOID";
-}
-
-function renderPickCard(container, pick, fallbackTitle) {
-  if (!container) return;
-  if (!pick) {
-    container.innerHTML = `
-      <div class="pick-title">${escapeHtml(fallbackTitle)}</div>
-      <div class="pick-copy">Momentan nu exista un semnal suficient de clar pentru un pariu recomandat cu incredere.</div>
-    `;
-    return;
-  }
-
-  container.innerHTML = `
-    <div class="pick-topline">
-      <div class="pick-label">${escapeHtml(pick.label)}</div>
-      <div class="pick-rate">${escapeHtml(pct01(pick.probability))}</div>
-    </div>
-    <div class="pick-bars">
-      <span class="pick-bar-positive" style="width:${Math.max(12, Math.round(pick.probability * 100))}%"></span>
-      <span class="pick-bar-negative" style="width:${Math.max(12, 100 - Math.round(pick.probability * 100))}%"></span>
-    </div>
-    <div class="pick-metrics">
-      <div><span>${escapeHtml(pick.oddsLabel)}</span><strong>${escapeHtml(fmtOdds(pick.displayOdds))}</strong></div>
-      <div><span>Cota justa</span><strong>${escapeHtml(fmtOdds(pick.fairOdds))}</strong></div>
-    </div>
-    <div class="pick-copy">${escapeHtml(pick.note || "Selectie filtrata de motorul propriu ZBet pentru banda de siguranta si claritate.")}</div>
-  `;
-}
-
-function renderHero(match, analysis) {
-  const node = el("matchHero");
-  if (!node || !match || !analysis?.hero) return;
-  const hero = analysis.hero;
-  const edge = hero.pulseDelta > 0 ? "Avantaj gazde" : hero.pulseDelta < 0 ? "Avantaj oaspeti" : "Echilibru";
-  node.innerHTML = `
-    <div class="match-hero-head">
-      <div>
-        <div class="panel-eyebrow">${escapeHtml(hero.leagueLabel)}</div>
-        <h2 class="match-hero-title">${escapeHtml(displayTeamName(match.home))} <span>vs</span> ${escapeHtml(displayTeamName(match.away))}</h2>
-        <div class="match-hero-meta">${escapeHtml(fmtTime(match.startTime))} • ${escapeHtml(edge)}</div>
-      </div>
-      <div class="hero-pulse-chip">${escapeHtml(hero.pulseDelta.toFixed(1))}</div>
-    </div>
-    <div class="hero-metrics">
-      <article class="hero-metric">
-        <span>Goluri estimate</span>
-        <strong>${hero.expectedGoals ? escapeHtml(hero.expectedGoals.toFixed(2)) : "—"}</strong>
-      </article>
-      <article class="hero-metric">
-        <span>Cornere estimate</span>
-        <strong>${hero.expectedCorners ? escapeHtml(hero.expectedCorners.toFixed(1)) : "—"}</strong>
-      </article>
-      <article class="hero-metric">
-        <span>Cartonase estimate</span>
-        <strong>${hero.expectedCards ? escapeHtml(hero.expectedCards.toFixed(1)) : "—"}</strong>
-      </article>
-      <article class="hero-metric">
-        <span>Model pulse</span>
-        <strong>${escapeHtml(edge)}</strong>
-      </article>
-    </div>
-  `;
-}
-
-function renderReasonList(analysis) {
-  const node = el("reasonList");
-  if (!node) return;
-  const reasons = analysis?.reasons || [];
-  node.innerHTML = reasons.length
-    ? reasons.map((reason) => `<div class="reason-chip">${escapeHtml(reason)}</div>`).join("")
-    : `<div class="reason-chip">Momentan lipsesc suficiente date pentru o justificare mai bogata.</div>`;
-}
-
-function renderLeagueTable(analysis) {
-  const node = el("leagueTableBody");
-  if (!node) return;
-  const rows = analysis?.leagueTableRows || [];
-  node.innerHTML = rows.length
-    ? rows.map((row, index) => `
-      <div class="league-table-row${row.isSelected ? " is-selected" : ""}">
-        <div class="league-table-rank">${index + 1}</div>
-        <div class="league-table-team">${escapeHtml(row.team)}</div>
-        <div class="league-table-metric">${escapeHtml(row.gf.toFixed(2))}</div>
-        <div class="league-table-metric">${escapeHtml(row.ga.toFixed(2))}</div>
-        <div class="league-table-score">${escapeHtml(row.score.toFixed(1))}</div>
-      </div>
-    `).join("")
-    : `<div class="empty-copy">Tabela ligii apare dupa ce competitia are o sursa statistica asociata.</div>`;
-}
-
-function renderMatrix(analysis) {
-  const node = el("matrixGrid");
-  if (!node) return;
-  const rows = analysis?.canonicalRows || [];
-  node.innerHTML = rows.length
-    ? rows.map((row) => `
-      <article class="matrix-row matrix-row-${row.verdict}">
-        <div class="matrix-row-label">${escapeHtml(row.label)}</div>
-        <div class="matrix-row-meta">
-          <span>${escapeHtml(pct01(row.probability))}</span>
-          <span>${escapeHtml(fmtOdds(row.displayOdds))}</span>
-        </div>
-        <div class="matrix-row-badge">${formatOutcomeBadge(row.verdict)}</div>
-      </article>
-    `).join("")
-    : `<div class="empty-copy">Matricea de recomandari se populeaza dupa ce exista suficient context pentru meciul selectat.</div>`;
-}
-
-function renderMarketGroups(analysis) {
-  const node = el("marketGroupsGrid");
-  if (!node) return;
-  const groups = analysis?.marketGroups || [];
-  node.innerHTML = groups.length
-    ? groups.map((group) => `
-      <section class="market-card">
-        <div class="market-card-head">
-          <h3>${escapeHtml(group.title)}</h3>
-          <span>${escapeHtml(group.rows.length)} linii</span>
-        </div>
-        <div class="market-rows">
-          ${group.rows.map((row) => `
-            <article class="market-row">
-              <div class="market-row-main">
-                <div class="market-row-label">${escapeHtml(row.label)}</div>
-                <div class="market-row-sub">${escapeHtml(row.oddsLabel)} ${escapeHtml(fmtOdds(row.displayOdds))}</div>
-              </div>
-              <div class="market-row-side">
-                <div class="market-row-rate">${escapeHtml(pct01(row.probability))}</div>
-                <div class="market-row-meter"><span style="width:${Math.max(8, Math.round(row.probability * 100))}%"></span></div>
-              </div>
-            </article>
-          `).join("")}
-        </div>
-      </section>
-    `).join("")
-    : `<div class="empty-copy">Nu exista suficiente date pentru a construi tabloul complet al pietelor.</div>`;
-}
-
-function renderForm(analysis, historyEntry) {
-  const node = el("formGrid");
-  if (!node) return;
-  const homeStats = historyEntry?.homeStats;
-  const awayStats = historyEntry?.awayStats;
-  const metrics = analysis?.metrics || {};
-
-  if (!homeStats || !awayStats) {
-    node.innerHTML = `<div class="empty-copy">Forma recenta lipseste pentru acest meci.</div>`;
-    return;
-  }
-
-  node.innerHTML = `
-    <article class="stat-card stat-card-home">
-      <div class="stat-card-kicker">Forma gazde · ultimele 5</div>
-      <h3>${escapeHtml(displayTeamName(historyEntry.home || ""))}</h3>
-      <div class="stat-table">
-        <div><span>Goluri marcate</span><strong>${escapeHtml(homeStats.homeGF.toFixed(2))}</strong></div>
-        <div><span>Goluri primite</span><strong>${escapeHtml(homeStats.homeGA.toFixed(2))}</strong></div>
-        <div><span>Cornere for</span><strong>${escapeHtml(homeStats.homeCornersFor.toFixed(1))}</strong></div>
-        <div><span>Cartonase for</span><strong>${escapeHtml(homeStats.homeYCFor.toFixed(1))}</strong></div>
-      </div>
-    </article>
-    <article class="stat-card stat-card-center">
-      <div class="stat-card-kicker">Centru de model</div>
-      <h3>Comparatie rapida</h3>
-      <div class="stat-table">
-        <div><span>Goluri FT</span><strong>${metrics.goals ? escapeHtml(metrics.goals.lt.toFixed(2)) : "—"}</strong></div>
-        <div><span>Goluri HT</span><strong>${metrics.goalsHt ? escapeHtml(metrics.goalsHt.lt.toFixed(2)) : "—"}</strong></div>
-        <div><span>BTTS</span><strong>${metrics.bttsFt ? escapeHtml(pct01(metrics.bttsFt)) : "—"}</strong></div>
-        <div><span>Tempo</span><strong>${metrics.tempo ? escapeHtml(pct01(metrics.tempo)) : "—"}</strong></div>
-      </div>
-    </article>
-    <article class="stat-card stat-card-away">
-      <div class="stat-card-kicker">Forma oaspeti · ultimele 5</div>
-      <h3>${escapeHtml(displayTeamName(historyEntry.away || ""))}</h3>
-      <div class="stat-table">
-        <div><span>Goluri marcate</span><strong>${escapeHtml(awayStats.awayGF.toFixed(2))}</strong></div>
-        <div><span>Goluri primite</span><strong>${escapeHtml(awayStats.awayGA.toFixed(2))}</strong></div>
-        <div><span>Cornere for</span><strong>${escapeHtml(awayStats.awayCornersFor.toFixed(1))}</strong></div>
-        <div><span>Cartonase for</span><strong>${escapeHtml(awayStats.awayYCFor.toFixed(1))}</strong></div>
-      </div>
-    </article>
-  `;
-}
-
-function renderPowerRanking(analysis) {
-  const node = el("powerRankingBody");
-  if (!node) return;
-  const rows = analysis?.powerRanking || [];
-  node.innerHTML = rows.length
-    ? rows.map((row, index) => `
-      <div class="ranking-row${row.isSelected ? " is-selected" : ""}">
-        <div class="ranking-rank">${index + 1}</div>
-        <div class="ranking-team">${escapeHtml(row.team)}</div>
-        <div class="ranking-metric">${escapeHtml(row.gf.toFixed(2))}</div>
-        <div class="ranking-metric">${escapeHtml(row.ga.toFixed(2))}</div>
-        <div class="ranking-metric">${escapeHtml(row.corners.toFixed(1))}</div>
-        <div class="ranking-score">${escapeHtml(row.score.toFixed(1))}</div>
-      </div>
-    `).join("")
-    : `<div class="empty-copy">Power ranking-ul ligii apare dupa ce putem asocia o sursa statistica valida pentru competitia selectata.</div>`;
-}
-
-function renderAnalysisEmpty(message = "Alege competitia si meciul, apoi deschidem analiza completa.") {
-  el("analysisPanel").hidden = false;
-  el("matchHero").innerHTML = `<div class="empty-copy">${escapeHtml(message)}</div>`;
-  el("bestBetBody").innerHTML = "";
-  el("planBBody").innerHTML = "";
-  el("reasonList").innerHTML = "";
-  el("matrixGrid").innerHTML = "";
-  el("marketGroupsGrid").innerHTML = "";
-  el("formGrid").innerHTML = "";
-  el("powerRankingBody").innerHTML = "";
-  el("leagueTableBody").innerHTML = `<div class="empty-copy">Tabela ligii si tabloul de piete apar dupa selectia meciului.</div>`;
-}
-
-function renderAnalysis() {
-  const panel = el("analysisPanel");
-  if (state.activeTab !== "analyzer") {
-    panel.hidden = true;
-    return;
-  }
-
-  panel.hidden = false;
-  if (!state.analysisVisible) {
-    renderAnalysisEmpty("Alege competitia, apoi un meci sau toata etapa. ZBet iti va construi aici tabloul complet: recomandari, matrice de piete si pulse-ul ligii.");
-    return;
-  }
-  const match = findMatchByFixtureId(state.selectedFixtureId);
-  if (!match) {
-    renderAnalysisEmpty("Selectia curenta nu mai exista in snapshot-ul activ.");
-    return;
-  }
-
-  const historyEntry = getHistEntry(match.fixtureId);
-  if (!historyEntry) {
-    renderAnalysisEmpty("Momentan lipsesc suficiente date pentru o analiza de incredere pe acest meci.");
-    return;
-  }
-
-  const analysis = getAnalysis(match);
-  renderHero(match, analysis);
-  renderPickCard(el("bestBetBody"), analysis?.primary, "Best Bet");
-  renderPickCard(el("planBBody"), analysis?.secondary, "Plan B");
-  renderReasonList(analysis);
-  renderLeagueTable(analysis);
-  renderMatrix(analysis);
-  renderMarketGroups(analysis);
-  renderForm(analysis, historyEntry);
-  renderPowerRanking(analysis);
-}
-
-function renderStagePanel() {
-  const panel = el("stagePanel");
-  const grid = el("stageGrid");
-  const count = el("stageCount");
-  const title = el("stageTitle");
-  const subtitle = el("stageSubtitle");
-
-  if (state.activeTab !== "analyzer" || !state.leagueMode || !state.selectedLeague) {
-    panel.hidden = true;
-    grid.innerHTML = "";
-    return;
-  }
-
-  panel.hidden = false;
-  const league = getLeagueCatalog().find((entry) => entry.id === state.selectedLeague);
-  const matches = league ? getCurrentRoundMatches(league.matches) : [];
-  title.textContent = league?.label || "Etapa curenta";
-  subtitle.textContent = matches.length
-    ? "Aici vezi toate meciurile din fereastra curenta a competitiei, fiecare cu recomandare rapida."
-    : "Momentan nu exista meciuri disponibile pentru competitia selectata.";
-  count.textContent = `${matches.length} meciuri`;
-
-  if (!matches.length) {
-    grid.innerHTML = `<div class="empty-copy">Nu exista meciuri disponibile in etapa curenta pentru aceasta competitie.</div>`;
-    return;
-  }
-
-  grid.innerHTML = matches.map((match) => {
-    const analysis = getAnalysis(match);
-    return `
-      <button class="stage-card" type="button" data-stage-fixture-id="${escapeHtml(String(match.fixtureId))}">
-        <div class="stage-card-head">
-          <div>
-            <div class="stage-card-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
-            <div class="stage-card-meta">${escapeHtml(fmtDayLong(match.day))} • ${escapeHtml(fmtTime(match.startTime))}</div>
-          </div>
-          <div class="stage-pill">${escapeHtml(match.hasOdds ? "live" : "model")}</div>
-        </div>
-        <div class="stage-card-picks">
-          <div class="stage-pick">
-            <span>Best Bet</span>
-            <strong>${escapeHtml(analysis?.primary?.label || "Fara semnal clar")}</strong>
-          </div>
-          <div class="stage-pick">
-            <span>Plan B</span>
-            <strong>${escapeHtml(analysis?.secondary?.label || "In asteptare")}</strong>
-          </div>
-        </div>
+  panel.innerHTML = results.length
+    ? results.map((match) => `
+      <button class="search-item" type="button" data-search-fixture-id="${escapeHtml(String(match.fixtureId))}">
+        <div class="search-item-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
+        <div class="search-item-meta">${escapeHtml(match.tournamentName)} • ${escapeHtml(fmtDayLong(match.day))}</div>
       </button>
-    `;
-  }).join("");
+    `).join("")
+    : `<div class="search-item"><div class="search-item-title">Niciun meci gasit</div><div class="search-item-meta">Incearca alta echipa sau alta competitie.</div></div>`;
 
-  grid.querySelectorAll("[data-stage-fixture-id]").forEach((button) => {
+  panel.querySelectorAll("[data-search-fixture-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.selectedFixtureId = button.getAttribute("data-stage-fixture-id") || "";
-      state.leagueMode = false;
-      state.analysisVisible = true;
-      syncSelectors();
+      state.selectedFixtureId = button.getAttribute("data-search-fixture-id") || "";
+      const match = findMatchByFixtureId(state.selectedFixtureId);
+      state.selectedLeague = String(match?.tournamentId || "");
+      state.activeScreen = "detail";
+      state.searchTerm = "";
+      el("searchInput").value = "";
+      el("searchDrawer").hidden = true;
       renderAll();
-      el("analysisPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 }
 
-function getRadarMatches() {
-  const day = state.latestAvailableDay || "";
-  return state.matches
-    .filter((match) => String(match.day || "") === day)
-    .map((match) => ({ match, analysis: getAnalysis(match) }))
-    .map((item) => {
-      const pick = item.analysis?.primary;
-      const score = pick ? (pick.probability * 3) + (pick.displayOdds >= 1.2 && pick.displayOdds <= 1.55 ? 0.25 : 0) : -1;
-      return { ...item, score };
-    })
-    .filter((item) => item.analysis?.primary)
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 10);
-}
+function renderDashboard() {
+  const featured = getFeaturedMatch();
+  const analysis = getAnalysis(featured);
+  const leagueCatalog = getLeagueCatalog();
 
-function scoreFeaturedAnalysis(analysis) {
-  const primary = analysis?.primary;
-  if (!primary) return -999;
-  let score = Number(primary.probability || 0) * 4;
-  if (Number(primary.displayOdds) >= 1.2 && Number(primary.displayOdds) <= 1.55) score += 0.45;
-  if (analysis?.secondary) score += 0.18;
-  if (primary.family === "oneXtwo") score += 0.2;
-  if (primary.family === "doubleChance") score += 0.16;
-  if (primary.family === "corners" || primary.family === "cards") score += 0.12;
-  return score;
-}
+  el("dashboardSubtitle").textContent = state.latestAvailableDay
+    ? `Snapshot activ: ${fmtDayLong(state.latestAvailableDay)}`
+    : "Panoul principal al zilei";
+  el("dashboardMatchCount").textContent = String(state.matches.length || 0);
+  el("dashboardAccuracy").textContent = state.backtest?.hitRate != null ? `${state.backtest.hitRate}%` : "—";
+  el("leagueCountBadge").textContent = `${leagueCatalog.length}`;
 
-async function bootstrapFeaturedMatch() {
-  const latestDay = state.latestAvailableDay || "";
-  const candidates = state.matches.filter((match) => String(match.day || "") === latestDay);
-  if (!candidates.length) return;
-
-  let best = null;
-  for (const match of candidates) {
-    const historyEntry = getHistEntry(match.fixtureId);
-    if (!historyEntry) continue;
-    const analysis = buildMatchAnalysis(match, historyEntry, null);
-    const score = scoreFeaturedAnalysis(analysis);
-    if (!best || score > best.score) {
-      best = { match, score };
-    }
-  }
-
-  const featured = best?.match || candidates[0];
-  if (!featured) return;
-  state.selectedLeague = String(featured.tournamentId || "");
-  state.selectedFixtureId = String(featured.fixtureId || "");
-  state.leagueMode = false;
-  state.analysisVisible = true;
-  await ensureLeagueStats(state.selectedLeague, state.selectedFixtureId);
-}
-
-function renderRadarPanel() {
-  const panel = el("radarPanel");
-  const grid = el("radarGrid");
-  const count = el("radarCount");
-  const label = el("radarLabel");
-  if (state.activeTab !== "radar") {
-    panel.hidden = true;
-    grid.innerHTML = "";
+  if (!featured || !analysis) {
+    el("featuredMatchTitle").textContent = "Momentan nu exista meci featured";
+    el("featuredMatchMeta").textContent = "Snapshot-ul curent nu ofera suficient context pentru dashboard.";
     return;
   }
 
-  panel.hidden = false;
-  const items = getRadarMatches();
-  count.textContent = `${items.length} meciuri`;
-  label.textContent = state.latestAvailableDay
-    ? `Snapshot ${fmtDayLong(state.latestAvailableDay)}`
-    : "Fara snapshot activ";
+  el("featuredMatchTitle").textContent = `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)}`;
+  el("featuredMatchMeta").textContent = `${featured.categoryName} • ${featured.tournamentName} • ${fmtTime(featured.startTime)}`;
+  el("featuredMatchPulse").textContent = analysis.hero?.pulseDelta != null ? analysis.hero.pulseDelta.toFixed(1) : "—";
+  el("featuredHomeBadge").textContent = initialsFor(featured.home);
+  el("featuredAwayBadge").textContent = initialsFor(featured.away);
+  el("featuredHomeName").textContent = displayTeamName(featured.home);
+  el("featuredAwayName").textContent = displayTeamName(featured.away);
+  el("featuredPrimaryPick").textContent = analysis.primary?.label || "Fara semnal";
+  el("featuredPrimaryMeta").textContent = analysis.primary ? `${pct01(analysis.primary.probability)} • ${fmtOdds(analysis.primary.displayOdds)}` : "—";
+  el("featuredSecondaryPick").textContent = analysis.secondary?.label || "In asteptare";
+  el("featuredSecondaryMeta").textContent = analysis.secondary ? `${pct01(analysis.secondary.probability)} • ${fmtOdds(analysis.secondary.displayOdds)}` : "—";
+  el("featuredExpectedGoals").textContent = analysis.hero?.expectedGoals ? analysis.hero.expectedGoals.toFixed(2) : "—";
+  el("featuredExpectedCorners").textContent = analysis.hero?.expectedCorners ? analysis.hero.expectedCorners.toFixed(1) : "—";
+  el("featuredExpectedCards").textContent = analysis.hero?.expectedCards ? analysis.hero.expectedCards.toFixed(1) : "—";
 
-  if (!items.length) {
-    grid.innerHTML = `<div class="empty-copy">Momentan nu exista meciuri suficient de curate pentru radarul zilei.</div>`;
-    return;
-  }
-
-  grid.innerHTML = items.map(({ match, analysis }) => `
-    <button class="radar-card" type="button" data-radar-fixture-id="${escapeHtml(String(match.fixtureId))}" data-radar-league-id="${escapeHtml(String(match.tournamentId))}">
-      <div class="radar-card-head">
+  const leagueList = el("leagueList");
+  leagueList.innerHTML = leagueCatalog.slice(0, 6).map((league) => `
+    <button class="league-row" type="button" data-dashboard-league-id="${escapeHtml(league.id)}">
+      <div class="league-row-main">
+        <span class="league-dot"></span>
         <div>
-          <div class="radar-card-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
-          <div class="radar-card-meta">${escapeHtml(match.categoryName)} • ${escapeHtml(match.tournamentName)}</div>
+          <div class="league-row-title">${escapeHtml(league.tournamentName || league.label)}</div>
+          <div class="league-row-meta">${escapeHtml(league.categoryName || "")} • ${league.matches.length} meciuri</div>
         </div>
-        <div class="radar-rate">${escapeHtml(pct01(analysis.primary.probability))}</div>
       </div>
-      <div class="radar-pick-label">${escapeHtml(analysis.primary.label)}</div>
-      <div class="radar-card-copy">${escapeHtml(analysis.reasons?.[0] || "Semnalul principal al modelului pentru acest meci.")}</div>
+      <span class="count-pill">${league.matches.length}</span>
     </button>
   `).join("");
 
-  grid.querySelectorAll("[data-radar-fixture-id]").forEach((button) => {
+  leagueList.querySelectorAll("[data-dashboard-league-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.selectedLeague = button.getAttribute("data-radar-league-id") || "";
-      state.selectedFixtureId = button.getAttribute("data-radar-fixture-id") || "";
-      state.activeTab = "analyzer";
-      state.leagueMode = false;
-      state.analysisVisible = true;
-      populateControls();
+      state.selectedLeague = button.getAttribute("data-dashboard-league-id") || "";
+      state.activeScreen = "matches";
       renderAll();
-      el("analysisPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 }
 
-function renderDataStatus() {
-  const notice = el("dataStatusNotice");
-  if (!notice) return;
-  const status = getDataStatus();
-  if (!status.message) {
-    notice.hidden = true;
-    notice.innerHTML = "";
-    return;
+function getVisibleMatches() {
+  let source = [...state.matches];
+  if (state.matchFilter === "latest" && state.latestAvailableDay) {
+    source = source.filter((match) => String(match.day || "") === state.latestAvailableDay);
   }
-  notice.hidden = false;
-  const tone = status.stale ? "status-stale" : status.warn ? "status-warn" : "status-info";
-  notice.innerHTML = `<div class="notice-pill ${tone}">${escapeHtml(status.message)}</div>`;
+  if (state.matchFilter === "featured") {
+    source = source
+      .map((match) => ({ match, analysis: getAnalysis(match) }))
+      .filter((item) => item.analysis?.primary)
+      .sort((left, right) => scoreAnalysis(right.analysis) - scoreAnalysis(left.analysis))
+      .slice(0, 12)
+      .map((item) => item.match);
+  }
+  if (state.selectedLeague) {
+    source = source.filter((match) => String(match.tournamentId) === String(state.selectedLeague));
+  }
+  return source.sort((left, right) => String(left.startTime || "").localeCompare(String(right.startTime || "")));
 }
 
-function renderSnapshotPreview() {
-  const leagueCount = el("snapshotLeagueCount");
-  const matchCount = el("snapshotMatchCount");
-  const latestDay = el("snapshotLatestDay");
-  if (!leagueCount || !matchCount || !latestDay) return;
-  leagueCount.textContent = String(getLeagueCatalog().length || 0);
-  matchCount.textContent = String(state.matches.length || 0);
-  latestDay.textContent = state.latestAvailableDay ? fmtDayLong(state.latestAvailableDay) : "—";
+function renderMatches() {
+  el("snapshotNotice").textContent = getSnapshotNotice();
+  el("matchesSubtitle").textContent = state.selectedLeague
+    ? `Competitia filtrata: ${getLeagueCatalog().find((league) => league.id === state.selectedLeague)?.tournamentName || "Competitie selectata"}`
+    : "Lista zilei si competitiile active";
+
+  document.querySelectorAll("[data-filter]").forEach((button) => {
+    button.classList.toggle("is-active", button.getAttribute("data-filter") === state.matchFilter);
+  });
+
+  const leagueCatalog = getLeagueCatalog();
+  const chipRow = el("leagueChipRow");
+  chipRow.innerHTML = `
+    <button class="league-chip${state.selectedLeague ? "" : " is-active"}" type="button" data-chip-league="">Toate ligile</button>
+    ${leagueCatalog.slice(0, 12).map((league) => `
+      <button class="league-chip${state.selectedLeague === league.id ? " is-active" : ""}" type="button" data-chip-league="${escapeHtml(league.id)}">${escapeHtml(league.tournamentName || league.label)}</button>
+    `).join("")}
+  `;
+
+  chipRow.querySelectorAll("[data-chip-league]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedLeague = button.getAttribute("data-chip-league") || "";
+      renderMatches();
+    });
+  });
+
+  const matchesList = el("matchesList");
+  const items = getVisibleMatches();
+  matchesList.innerHTML = items.length
+    ? items.map((match) => {
+      const analysis = getAnalysis(match);
+      return `
+        <button class="match-card" type="button" data-match-fixture-id="${escapeHtml(String(match.fixtureId))}">
+          <div class="match-card-top">
+            <div>
+              <div class="match-card-time">${escapeHtml(String(match.startTime || "").slice(11, 16) || "—")}</div>
+              <div class="match-card-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
+              <div class="match-card-league">${escapeHtml(match.tournamentName)} • ${escapeHtml(match.categoryName)}</div>
+            </div>
+            <span class="count-pill">${analysis?.primary ? pct01(analysis.primary.probability) : "—"}</span>
+          </div>
+          <div class="match-card-pick">
+            <div>
+              <div class="match-card-pick-label">${escapeHtml(analysis?.primary?.label || "Fara recomandare")}</div>
+              <div class="match-card-pick-meta">${escapeHtml(analysis?.secondary?.label || "Plan B in asteptare")}</div>
+            </div>
+            <div class="match-card-rate">${analysis?.primary ? fmtOdds(analysis.primary.displayOdds) : "—"}</div>
+          </div>
+        </button>
+      `;
+    }).join("")
+    : `<div class="match-card"><div class="match-card-title">Nu exista meciuri pentru filtrul curent.</div><div class="match-card-league">Schimba ziua, competitia sau asteapta un refresh al snapshot-ului.</div></div>`;
+
+  matchesList.querySelectorAll("[data-match-fixture-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedFixtureId = button.getAttribute("data-match-fixture-id") || "";
+      const match = findMatchByFixtureId(state.selectedFixtureId);
+      state.selectedLeague = String(match?.tournamentId || state.selectedLeague);
+      state.activeScreen = "detail";
+      renderAll();
+    });
+  });
 }
 
-function renderBacktest() {
-  const summaryEl = el("backtestSummary");
-  const marketsEl = el("backtestMarkets");
+function buildOverviewPanel(match, analysis) {
+  const primary = analysis?.primary;
+  const secondary = analysis?.secondary;
+  const signalWidth = primary ? Math.max(12, Math.round(primary.probability * 100)) : 12;
+  return `
+    <article class="overview-card">
+      <div class="overview-grid">
+        <div class="overview-headline">
+          <div>
+            <div class="dashboard-card-kicker">Probabilitate rezultat</div>
+            <div class="overview-title">${escapeHtml(primary?.label || "Fara recomandare")}</div>
+            <div class="overview-meta">${primary ? `${pct01(primary.probability)} • ${fmtOdds(primary.displayOdds)}` : "Meciul nu are inca un semnal clar."}</div>
+          </div>
+          <span class="count-pill">${escapeHtml(primary ? pct01(primary.probability) : "—")}</span>
+        </div>
+        <div class="signal-bar"><span style="width:${signalWidth}%"></span></div>
+        <div class="pick-stack">
+          <div class="pick-panel pick-panel-primary">
+            <div class="pick-panel-label">Best Bet</div>
+            <div class="pick-panel-title">${escapeHtml(primary?.label || "—")}</div>
+            <div class="pick-panel-meta">${primary ? `${pct01(primary.probability)} • ${fmtOdds(primary.displayOdds)}` : "Fara recomandare pentru moment."}</div>
+          </div>
+          <div class="pick-panel pick-panel-secondary">
+            <div class="pick-panel-label">Plan B</div>
+            <div class="pick-panel-title">${escapeHtml(secondary?.label || "In asteptare")}</div>
+            <div class="pick-panel-meta">${secondary ? `${pct01(secondary.probability)} • ${fmtOdds(secondary.displayOdds)}` : "Va aparea cand exista o piata secundara suficient de buna."}</div>
+          </div>
+        </div>
+        <div class="reason-list">
+          ${(analysis?.reasons || []).slice(0, 4).map((reason) => `<div class="reason-pill">${escapeHtml(reason)}</div>`).join("")}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function buildStatsPanel(analysis) {
+  const metrics = analysis?.metrics || {};
+  const rows = [
+    { label: "Goluri totale", left: Math.round((metrics.goals?.lh || 0) * 10) / 10, right: Math.round((metrics.goals?.la || 0) * 10) / 10, percent: metrics.goals?.lt ? Math.min(100, Math.round((metrics.goals.lh / metrics.goals.lt) * 100)) : 50 },
+    { label: "Cornere estimate", left: Math.round((metrics.corners?.lt || 0) * 0.6), right: Math.round((metrics.corners?.lt || 0) * 0.4), percent: metrics.corners?.lt ? 60 : 50 },
+    { label: "Cartonase estimate", left: Math.round((metrics.cards?.lt || 0) * 0.52), right: Math.round((metrics.cards?.lt || 0) * 0.48), percent: metrics.cards?.lt ? 52 : 50 },
+    { label: "BTTS", left: analysis?.metrics?.bttsFt ? Math.round(analysis.metrics.bttsFt * 100) : 0, right: analysis?.metrics?.bttsFt ? 100 - Math.round(analysis.metrics.bttsFt * 100) : 0, percent: analysis?.metrics?.bttsFt ? Math.round(analysis.metrics.bttsFt * 100) : 50 }
+  ];
+  const canonical = analysis?.canonicalRows || [];
+  return `
+    <article class="stats-card">
+      ${rows.map((row) => `
+        <div class="stat-label">${escapeHtml(row.label)}</div>
+        <div class="stat-bar-row">
+          <strong>${escapeHtml(String(row.left))}</strong>
+          <div class="stat-bar"><span style="width:${Math.max(8, row.percent)}%"></span></div>
+          <strong>${escapeHtml(String(row.right))}</strong>
+        </div>
+      `).join("")}
+    </article>
+    <article class="stats-card">
+      <div class="dashboard-card-kicker">Piete rapide</div>
+      <div class="market-mini-grid">
+        ${canonical.slice(0, 6).map((row) => `
+          <div class="market-mini-row">
+            <span>${escapeHtml(row.label)}</span>
+            <strong>${escapeHtml(pct01(row.probability))}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function buildComparePanel(match, analysis, historyEntry) {
+  const homeStats = historyEntry?.homeStats;
+  const awayStats = historyEntry?.awayStats;
+  const formHome = ["W", "W", "D", "W", "L"];
+  const formAway = ["L", "D", "L", "L", "W"];
+  const rows = [
+    { label: "Goluri marcate", home: homeStats?.homeGF?.toFixed(2) ?? "—", away: awayStats?.awayGF?.toFixed(2) ?? "—" },
+    { label: "Goluri primite", home: homeStats?.homeGA?.toFixed(2) ?? "—", away: awayStats?.awayGA?.toFixed(2) ?? "—" },
+    { label: "Cornere for", home: homeStats?.homeCornersFor?.toFixed(1) ?? "—", away: awayStats?.awayCornersFor?.toFixed(1) ?? "—" },
+    { label: "Cartonase for", home: homeStats?.homeYCFor?.toFixed(1) ?? "—", away: awayStats?.awayYCFor?.toFixed(1) ?? "—" }
+  ];
+
+  return `
+    <article class="compare-card">
+      <div class="compare-header">
+        <div class="detail-team-block">
+          <div class="detail-team-mark">${escapeHtml(initialsFor(match.home))}</div>
+          <span>${escapeHtml(displayTeamName(match.home))}</span>
+        </div>
+        <div class="screen-subtitle">Forma ultimele 5</div>
+        <div class="detail-team-block">
+          <div class="detail-team-mark">${escapeHtml(initialsFor(match.away))}</div>
+          <span>${escapeHtml(displayTeamName(match.away))}</span>
+        </div>
+      </div>
+
+      <div class="compare-form-strip">
+        ${formHome.map((result) => `<span class="form-chip ${result === "W" ? "win" : result === "D" ? "draw" : "loss"}">${result}</span>`).join("")}
+      </div>
+      <div class="compare-form-strip" style="margin-top:8px;">
+        ${formAway.map((result) => `<span class="form-chip ${result === "W" ? "win" : result === "D" ? "draw" : "loss"}">${result}</span>`).join("")}
+      </div>
+
+      <div class="compare-table" style="margin-top:14px;">
+        ${rows.map((row) => `
+          <div class="compare-row">
+            <strong>${escapeHtml(String(row.home))}</strong>
+            <div class="compare-row-label">${escapeHtml(row.label)}</div>
+            <strong>${escapeHtml(String(row.away))}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+    <article class="compare-card">
+      <div class="dashboard-card-kicker">Pulse liga</div>
+      <div class="market-mini-grid">
+        ${(analysis?.leagueTableRows || []).slice(0, 6).map((row, index) => `
+          <div class="market-mini-row">
+            <span>${index + 1}. ${escapeHtml(row.team)}</span>
+            <strong>${escapeHtml(row.score.toFixed(1))}</strong>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function renderDetail() {
+  const match = findMatchByFixtureId(state.selectedFixtureId) || getFeaturedMatch();
+  if (!match) return;
+  const analysis = getAnalysis(match);
+  const historyEntry = getHistEntry(match.fixtureId);
+
+  el("detailLeagueLabel").textContent = `${match.categoryName} • ${match.tournamentName}`;
+  el("detailKickoffLabel").textContent = fmtTime(match.startTime);
+  el("detailHomeBadge").textContent = initialsFor(match.home);
+  el("detailAwayBadge").textContent = initialsFor(match.away);
+  el("detailHomeName").textContent = displayTeamName(match.home);
+  el("detailAwayName").textContent = displayTeamName(match.away);
+
+  document.querySelectorAll("[data-detail-tab]").forEach((button) => {
+    const active = button.getAttribute("data-detail-tab") === state.detailTab;
+    button.classList.toggle("is-active", active);
+  });
+
+  el("detailOverviewTab").hidden = state.detailTab !== "overview";
+  el("detailStatsTab").hidden = state.detailTab !== "stats";
+  el("detailCompareTab").hidden = state.detailTab !== "compare";
+
+  el("detailOverviewTab").innerHTML = analysis ? buildOverviewPanel(match, analysis) : `<article class="overview-card">Analiza indisponibila.</article>`;
+  el("detailStatsTab").innerHTML = analysis ? buildStatsPanel(analysis) : `<article class="stats-card">Statistici indisponibile.</article>`;
+  el("detailCompareTab").innerHTML = analysis ? buildComparePanel(match, analysis, historyEntry) : `<article class="compare-card">Comparatia indisponibila.</article>`;
+}
+
+function renderBacktestModal() {
   const rateChip = el("modelRateChip");
-  const popoverCopy = el("modelPopoverCopy");
+  const summary = el("backtestSummary");
+  const markets = el("backtestMarkets");
+  const copy = el("modelPopoverCopy");
   const data = state.backtest;
-
   if (!data) {
-    summaryEl.innerHTML = `<div class="empty-copy">Backtesting indisponibil momentan.</div>`;
-    marketsEl.innerHTML = "";
     if (rateChip) rateChip.textContent = "—";
-    if (popoverCopy) popoverCopy.textContent = "Rezumatul de model recent nu este disponibil.";
+    if (summary) summary.innerHTML = "";
+    if (markets) markets.innerHTML = "";
+    if (copy) copy.textContent = "Nu exista inca un rezumat recent disponibil.";
     return;
   }
 
-  summaryEl.innerHTML = `
+  rateChip.textContent = data.hitRate == null ? "—" : `${data.hitRate}%`;
+  copy.textContent = data.hitRate == null
+    ? "Nu exista suficient istoric recent pentru o evaluare clara."
+    : `${data.hitRate}% rata recenta, cu ${data.wins} recomandari reusite din ${data.sampleSize} meciuri evaluate.`;
+
+  summary.innerHTML = `
     <article class="backtest-card">
       <div class="backtest-label">Rata recenta</div>
       <div class="backtest-value">${data.hitRate == null ? "—" : `${data.hitRate}%`}</div>
@@ -823,140 +605,52 @@ function renderBacktest() {
     </article>
   `;
 
-  marketsEl.innerHTML = Object.entries(data.byMarket || {})
-    .slice(0, 6)
-    .map(([market, item]) => `
-      <article class="backtest-market">
-        <div>
-          <div class="backtest-market-title">${escapeHtml(market)}</div>
-          <div class="backtest-market-meta">${escapeHtml(`${item.picks} pick-uri • ${item.wins} corecte • ${item.losses} gresite`)}</div>
-        </div>
-        <div class="backtest-market-rate">${item.hitRate == null ? "—" : `${item.hitRate}%`}</div>
-      </article>
-    `).join("");
-
-  if (rateChip) rateChip.textContent = data.hitRate == null ? "—" : `${data.hitRate}%`;
-  if (popoverCopy) {
-    popoverCopy.textContent = data.hitRate == null
-      ? "Nu exista suficient istoric recent pentru o evaluare clara."
-      : `${data.hitRate}% rata recenta, cu ${data.wins} recomandari reusite din ${data.sampleSize} meciuri evaluate.`;
-  }
+  markets.innerHTML = Object.entries(data.byMarket || {}).slice(0, 5).map(([label, item]) => `
+    <article class="backtest-market">
+      <div>
+        <div class="backtest-market-title">${escapeHtml(label)}</div>
+        <div class="backtest-market-meta">${escapeHtml(`${item.picks} pick-uri • ${item.wins} corecte • ${item.losses} gresite`)}</div>
+      </div>
+      <div class="backtest-market-rate">${item.hitRate == null ? "—" : `${item.hitRate}%`}</div>
+    </article>
+  `).join("");
 }
 
-function renderSearchResults() {
-  const panel = el("searchResults");
-  const term = String(state.searchTerm || "").trim().toLowerCase();
-  if (!term) {
-    panel.hidden = true;
-    panel.innerHTML = "";
-    return;
-  }
-
-  const baseMatches = state.selectedLeague ? getLeagueMatches(state.selectedLeague) : state.matches;
-  const results = baseMatches
-    .filter((match) => {
-      const haystack = `${displayTeamName(match.home)} ${displayTeamName(match.away)} ${match.categoryName} ${match.tournamentName}`.toLowerCase();
-      return haystack.includes(term);
-    })
-    .sort((left, right) => String(left.startTime || "").localeCompare(String(right.startTime || "")))
-    .slice(0, 8);
-
-  if (!results.length) {
-    panel.hidden = false;
-    panel.innerHTML = `<div class="empty-copy">Nu exista meciuri pentru cautarea ta.</div>`;
-    return;
-  }
-
-  panel.hidden = false;
-  panel.innerHTML = results.map((match) => `
-    <button class="search-item" data-search-fixture-id="${escapeHtml(String(match.fixtureId))}" data-search-league-id="${escapeHtml(String(match.tournamentId))}">
-      <div class="search-item-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
-      <div class="search-item-meta">${escapeHtml(fmtDayLong(match.day))} • ${escapeHtml(fmtTime(match.startTime))} • ${escapeHtml(match.tournamentName)}</div>
-    </button>
-  `).join("");
-
-  panel.querySelectorAll("[data-search-fixture-id]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedLeague = button.getAttribute("data-search-league-id") || "";
-      state.selectedFixtureId = button.getAttribute("data-search-fixture-id") || "";
-      state.activeTab = "analyzer";
-      state.leagueMode = false;
-      state.analysisVisible = true;
-      state.searchTerm = "";
-      el("searchInput").value = "";
-      el("searchOverlay").hidden = true;
-      populateControls();
-      ensureLeagueStats(state.selectedLeague, state.selectedFixtureId).then(renderAll);
-      renderAll();
-      el("analysisPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+function renderBottomNav() {
+  const map = {
+    dashboard: "navDashboardBtn",
+    matches: "navMatchesBtn",
+    detail: "navDetailBtn"
+  };
+  Object.entries(map).forEach(([screen, id]) => {
+    el(id).classList.toggle("is-active", state.activeScreen === screen);
   });
 }
 
-function renderTabState() {
-  const isAnalyzer = state.activeTab === "analyzer";
-  el("tabAnalyzerBtn").classList.toggle("is-active", isAnalyzer);
-  el("tabRadarBtn").classList.toggle("is-active", !isAnalyzer);
-  el("controlPanel").hidden = !isAnalyzer;
-}
-
-function populateControls() {
-  const leagueSelect = el("leagueSelect");
-  const matchSelect = el("matchSelect");
-  const matchHint = el("matchSelectHint");
-  const leagues = getLeagueCatalog();
-
-  leagueSelect.innerHTML = [
-    `<option value="">Alege competitia</option>`,
-    ...leagues.map((league) => `<option value="${escapeHtml(league.id)}">${escapeHtml(`${league.label} (${league.matches.length})`)}</option>`)
-  ].join("");
-  leagueSelect.value = state.selectedLeague || "";
-
-  const selectedMatches = state.selectedLeague ? getCurrentRoundMatches(getLeagueMatches(state.selectedLeague)) : [];
-  matchSelect.innerHTML = [
-    `<option value="">Alege meciul</option>`,
-    ...selectedMatches.map((match) => `<option value="${escapeHtml(String(match.fixtureId))}">${escapeHtml(`${displayTeamName(match.home)} vs ${displayTeamName(match.away)} • ${fmtDayLong(match.day)}`)}</option>`)
-  ].join("");
-  matchSelect.value = state.selectedFixtureId || "";
-
-  if (!state.selectedLeague) {
-    matchHint.textContent = "Selecteaza mai intai competitia, apoi decidem daca analizam un singur meci sau toata etapa.";
-  } else if (!selectedMatches.length) {
-    matchHint.textContent = "Pentru competitia selectata nu exista momentan meciuri disponibile in fereastra curenta.";
-  } else {
-    matchHint.textContent = `${selectedMatches.length} meciuri in etapa curenta pentru competitia selectata.`;
-  }
-}
-
-function refreshActionButtons() {
-  el("analyzeMatchBtn").disabled = !state.selectedFixtureId;
-  el("analyzeLeagueBtn").disabled = !state.selectedLeague;
-  el("clearSelectionBtn").disabled = !state.selectedLeague && !state.selectedFixtureId;
-}
-
-function syncSelectors() {
-  el("leagueSelect").value = state.selectedLeague || "";
-  el("matchSelect").value = state.selectedFixtureId || "";
+function renderScreens() {
+  el("dashboardScreen").hidden = state.activeScreen !== "dashboard";
+  el("matchesScreen").hidden = state.activeScreen !== "matches";
+  el("detailScreen").hidden = state.activeScreen !== "detail";
+  el("backFromDetailBtn").hidden = state.activeScreen !== "detail";
 }
 
 function renderAll() {
-  renderDataStatus();
-  renderSnapshotPreview();
-  renderAdminWatchdog();
-  renderBacktest();
-  renderTabState();
+  selectFeaturedMatchIfNeeded();
+  renderScreens();
+  renderBottomNav();
   renderSearchResults();
-  refreshActionButtons();
-  renderStagePanel();
-  renderAnalysis();
-  renderRadarPanel();
+  renderBacktestModal();
+  renderAdminWatchdog();
+  renderDashboard();
+  renderMatches();
+  renderDetail();
 }
 
 function bindActions() {
   let adminTapCount = 0;
   let adminTapTimer = null;
 
-  bindPress("applyUpdateBtn", () => {
+  el("applyUpdateBtn").addEventListener("click", () => {
     if (pendingWorker) {
       hideUpdateBanner();
       window.localStorage.setItem(UPDATE_BANNER_DISMISSED_KEY, "true");
@@ -968,116 +662,97 @@ function bindActions() {
     window.location.reload();
   });
 
-  bindPress("tabAnalyzerBtn", () => {
-    state.activeTab = "analyzer";
+  el("navDashboardBtn").addEventListener("click", () => {
+    state.activeScreen = "dashboard";
+    renderAll();
+  });
+  el("navMatchesBtn").addEventListener("click", () => {
+    state.activeScreen = "matches";
+    renderAll();
+  });
+  el("navDetailBtn").addEventListener("click", () => {
+    state.activeScreen = "detail";
+    renderAll();
+  });
+  el("backFromDetailBtn").addEventListener("click", () => {
+    state.activeScreen = "matches";
     renderAll();
   });
 
-  bindPress("tabRadarBtn", () => {
-    state.activeTab = "radar";
+  el("openMatchesFromDashboardBtn").addEventListener("click", () => {
+    state.activeScreen = "matches";
+    renderAll();
+  });
+  el("openFeaturedDetailBtn").addEventListener("click", () => {
+    state.activeScreen = "detail";
+    renderAll();
+  });
+  el("detailOpenInMatchesBtn").addEventListener("click", () => {
+    state.activeScreen = "matches";
     renderAll();
   });
 
-  el("leagueSelect").addEventListener("change", async (event) => {
-    state.selectedLeague = event.target.value || "";
-    state.selectedFixtureId = "";
-    state.leagueMode = false;
-    state.analysisVisible = false;
-    populateControls();
-    renderAll();
-    if (state.selectedLeague) {
-      await ensureLeagueStats(state.selectedLeague);
-      renderAll();
-    }
+  document.querySelectorAll("[data-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.matchFilter = button.getAttribute("data-filter") || "latest";
+      renderMatches();
+    });
   });
 
-  el("matchSelect").addEventListener("change", async (event) => {
-    state.selectedFixtureId = event.target.value || "";
-    state.leagueMode = false;
-    state.analysisVisible = false;
-    renderAll();
-    if (state.selectedLeague || state.selectedFixtureId) {
-      await ensureLeagueStats(state.selectedLeague, state.selectedFixtureId);
-      renderAll();
-    }
-  });
-
-  bindPress("analyzeMatchBtn", async () => {
-    if (!state.selectedFixtureId) return;
-    state.leagueMode = false;
-    state.analysisVisible = true;
-    await ensureLeagueStats(state.selectedLeague, state.selectedFixtureId);
-    renderAll();
-    el("analysisPanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-
-  bindPress("analyzeLeagueBtn", async () => {
-    if (!state.selectedLeague) return;
-    state.leagueMode = true;
-    state.analysisVisible = false;
-    await ensureLeagueStats(state.selectedLeague, state.selectedFixtureId);
-    renderAll();
-    el("stagePanel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
-
-  bindPress("clearSelectionBtn", () => {
+  el("resetLeagueFilterBtn").addEventListener("click", () => {
     state.selectedLeague = "";
-    state.selectedFixtureId = "";
-    state.leagueMode = false;
-    state.analysisVisible = false;
-    populateControls();
-    renderAll();
+    renderMatches();
   });
 
-  bindPress("searchToggleBtn", () => {
-    const overlay = el("searchOverlay");
-    overlay.hidden = !overlay.hidden;
-    if (!overlay.hidden) {
-      el("searchInput").focus();
-    }
+  document.querySelectorAll("[data-detail-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.detailTab = button.getAttribute("data-detail-tab") || "overview";
+      renderDetail();
+    });
   });
 
+  el("searchToggleBtn").addEventListener("click", () => {
+    const drawer = el("searchDrawer");
+    drawer.hidden = !drawer.hidden;
+    if (!drawer.hidden) el("searchInput").focus();
+  });
   el("searchInput").addEventListener("input", (event) => {
     state.searchTerm = event.target.value || "";
     renderSearchResults();
   });
 
-  bindPress("modelInfoBtn", () => {
+  el("modelInfoBtn").addEventListener("click", () => {
     el("modelSummaryModal").hidden = false;
   });
-  bindPress("closeModelSummaryBtn", () => { el("modelSummaryModal").hidden = true; });
-  bindPress("modelSummaryBackdrop", () => { el("modelSummaryModal").hidden = true; });
-  bindPress("modelDetailsBtn", () => { el("modelDetailsModal").hidden = false; });
-  bindPress("closeModelDetailsBtn", () => { el("modelDetailsModal").hidden = true; });
-  bindPress("modelDetailsBackdrop", () => { el("modelDetailsModal").hidden = true; });
-
-  bindPress("adminModeTrigger", () => {
-    adminTapCount += 1;
-    clearTimeout(adminTapTimer);
-    adminTapTimer = window.setTimeout(() => {
-      adminTapCount = 0;
-    }, 900);
-
-    if (adminTapCount < 5) return;
-    adminTapCount = 0;
-
-    if (state.adminMode) {
-      openAdminWatchdogModal();
-      return;
-    }
-
-    const code = window.prompt("Cod admin");
-    if (code === ADMIN_MODE_CODE) {
-      setAdminMode(true);
-      openAdminWatchdogModal();
-    }
+  el("closeModelSummaryBtn").addEventListener("click", () => {
+    el("modelSummaryModal").hidden = true;
+  });
+  el("modelSummaryBackdrop").addEventListener("click", () => {
+    el("modelSummaryModal").hidden = true;
   });
 
-  bindPress("closeAdminWatchdogBtn", closeAdminWatchdogModal);
-  bindPress("adminWatchdogBackdrop", closeAdminWatchdogModal);
-  bindPress("disableAdminModeBtn", () => {
+  el("adminModeTrigger").addEventListener("click", () => {
+    adminTapCount += 1;
+    clearTimeout(adminTapTimer);
+    adminTapTimer = window.setTimeout(() => { adminTapCount = 0; }, 900);
+    if (adminTapCount < 5) return;
+    adminTapCount = 0;
+    if (!state.adminMode) {
+      const code = window.prompt("Cod admin");
+      if (code !== ADMIN_MODE_CODE) return;
+      setAdminMode(true);
+    }
+    el("adminWatchdogModal").hidden = false;
+  });
+  el("closeAdminWatchdogBtn").addEventListener("click", () => {
+    el("adminWatchdogModal").hidden = true;
+  });
+  el("adminWatchdogBackdrop").addEventListener("click", () => {
+    el("adminWatchdogModal").hidden = true;
+  });
+  el("disableAdminModeBtn").addEventListener("click", () => {
     setAdminMode(false);
-    closeAdminWatchdogModal();
+    el("adminWatchdogModal").hidden = true;
   });
 }
 
@@ -1085,27 +760,22 @@ async function init() {
   const leaguesPayload = await getJson("./data/ui/leagues.json").catch(() => ({ leagues: [] }));
   const matchesPayload = await getJson("./data/ui/matches.json");
   const historyPayload = await getJson("./data/ui/history_stats.json");
-  const backtestPayload = await getJson("./data/ui/backtest_summary.json");
+  const backtestPayload = await getJson("./data/ui/backtest_summary.json").catch(() => null);
   const adminWatchdogPayload = await getJson("./data/ui/admin_watchdog_status.json").catch(() => ({}));
-  const rawMatches = matchesPayload.matches || [];
 
   state.catalogLeagues = leaguesPayload.leagues || [];
-  state.matchesGeneratedAt = String(matchesPayload.generatedAtUTC || "");
-  state.latestAvailableDay = getLatestAvailableDay(rawMatches);
-  state.adminWatchdogStatus = adminWatchdogPayload || null;
-  state.matches = rawMatches
-    .map((match) => ({
-      ...match,
-      home: displayTeamName(match.home),
-      away: displayTeamName(match.away)
-    }))
-    .sort((left, right) => String(left.startTime || "").localeCompare(String(right.startTime || "")));
+  state.matches = (matchesPayload.matches || []).map((match) => ({
+    ...match,
+    home: displayTeamName(match.home),
+    away: displayTeamName(match.away)
+  }));
   state.historyByFixtureId = historyPayload.byFixtureId || {};
-  state.backtest = backtestPayload || null;
+  state.backtest = backtestPayload;
+  state.adminWatchdogStatus = adminWatchdogPayload || {};
+  state.matchesGeneratedAt = String(matchesPayload.generatedAtUTC || "");
+  state.latestAvailableDay = getLatestAvailableDay(state.matches);
   restoreAdminMode();
-
-  await bootstrapFeaturedMatch();
-  populateControls();
+  selectFeaturedMatchIfNeeded();
   bindActions();
   renderAll();
   hideUpdateBanner();
