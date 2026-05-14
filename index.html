@@ -55,26 +55,76 @@
 
     <main class="layout">
       <aside id="controlPanel" class="panel panel-control">
-        <div class="panel-kicker">Match Oracle</div>
-        <h1>Construieste analiza meciului, piata cu piata.</h1>
-        <p class="panel-copy">Alegi competitia, alegi meciul sau toata etapa, iar ZBet iti construieste tabloul complet: recomandari, probabilitati, matrice BET/AVOID si power ranking recent.</p>
-        <div id="dataStatusNotice" class="data-status" hidden></div>
+        <div class="control-hero-grid">
+          <div class="control-main">
+            <div class="panel-kicker">Match Oracle</div>
+            <h1>Construieste analiza meciului, piata cu piata.</h1>
+            <p class="panel-copy">Alegi competitia, alegi meciul sau toata etapa, iar ZBet iti construieste tabloul complet: recomandari, probabilitati, matrice BET/AVOID si power ranking recent.</p>
+            <div id="dataStatusNotice" class="data-status" hidden></div>
 
-        <label class="field">
-          <span class="field-label">Competitie</span>
-          <select id="leagueSelect"></select>
-        </label>
+            <label class="field">
+              <span class="field-label">Competitie</span>
+              <select id="leagueSelect"></select>
+            </label>
 
-        <label class="field">
-          <span class="field-label">Meci</span>
-          <select id="matchSelect"></select>
-          <span id="matchSelectHint" class="field-hint">Selecteaza mai intai competitia, apoi alegem daca analizam un meci sau toata etapa.</span>
-        </label>
+            <label class="field">
+              <span class="field-label">Meci</span>
+              <select id="matchSelect"></select>
+              <span id="matchSelectHint" class="field-hint">Selecteaza mai intai competitia, apoi alegem daca analizam un meci sau toata etapa.</span>
+            </label>
 
-        <div class="action-stack">
-          <button id="analyzeMatchBtn" class="btn btn-primary" type="button">Analizeaza meciul</button>
-          <button id="analyzeLeagueBtn" class="btn btn-secondary" type="button">Analizeaza toata etapa</button>
-          <button id="clearSelectionBtn" class="btn btn-ghost" type="button">Reseteaza selectia</button>
+            <div class="action-stack">
+              <button id="analyzeMatchBtn" class="btn btn-primary" type="button">Analizeaza meciul</button>
+              <button id="analyzeLeagueBtn" class="btn btn-secondary" type="button">Analizeaza toata etapa</button>
+              <button id="clearSelectionBtn" class="btn btn-ghost" type="button">Reseteaza selectia</button>
+            </div>
+          </div>
+
+          <div class="control-preview">
+            <div class="section-head section-head-tight">
+              <div>
+                <div class="panel-kicker">Dashboard Preview</div>
+                <h3>Ce construieste ZBet</h3>
+              </div>
+            </div>
+            <div class="preview-stats">
+              <article class="preview-stat">
+                <span>Competitii</span>
+                <strong id="snapshotLeagueCount">—</strong>
+              </article>
+              <article class="preview-stat">
+                <span>Meciuri in snapshot</span>
+                <strong id="snapshotMatchCount">—</strong>
+              </article>
+              <article class="preview-stat">
+                <span>Ultima zi</span>
+                <strong id="snapshotLatestDay">—</strong>
+              </article>
+            </div>
+            <div class="preview-market-board">
+              <div class="preview-market-row">
+                <span>1X2 FT</span>
+                <span class="preview-badge bet">BET</span>
+              </div>
+              <div class="preview-market-row">
+                <span>Double Chance</span>
+                <span class="preview-badge watch">WATCH</span>
+              </div>
+              <div class="preview-market-row">
+                <span>Ambele marcheaza</span>
+                <span class="preview-badge bet">BET</span>
+              </div>
+              <div class="preview-market-row">
+                <span>Over / Under</span>
+                <span class="preview-badge watch">WATCH</span>
+              </div>
+              <div class="preview-market-row">
+                <span>Cornere / Cartonase</span>
+                <span class="preview-badge avoid">AVOID</span>
+              </div>
+            </div>
+            <p class="section-copy">Board-ul de mai sus este doar preview-ul zonei de analiza. Dupa selectie, ZBet il inlocuieste cu datele reale pentru meciul ales.</p>
+          </div>
         </div>
       </aside>
 

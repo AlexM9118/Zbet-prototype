@@ -748,6 +748,16 @@ function renderDataStatus() {
   notice.innerHTML = `<div class="notice-pill ${tone}">${escapeHtml(status.message)}</div>`;
 }
 
+function renderSnapshotPreview() {
+  const leagueCount = el("snapshotLeagueCount");
+  const matchCount = el("snapshotMatchCount");
+  const latestDay = el("snapshotLatestDay");
+  if (!leagueCount || !matchCount || !latestDay) return;
+  leagueCount.textContent = String(getLeagueCatalog().length || 0);
+  matchCount.textContent = String(state.matches.length || 0);
+  latestDay.textContent = state.latestAvailableDay ? fmtDayLong(state.latestAvailableDay) : "—";
+}
+
 function renderBacktest() {
   const summaryEl = el("backtestSummary");
   const marketsEl = el("backtestMarkets");
@@ -894,6 +904,7 @@ function syncSelectors() {
 
 function renderAll() {
   renderDataStatus();
+  renderSnapshotPreview();
   renderAdminWatchdog();
   renderBacktest();
   renderTabState();

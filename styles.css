@@ -191,7 +191,7 @@ button,select,input{font:inherit}
 
 .layout{
   display:grid;
-  grid-template-columns:340px minmax(0,1fr);
+  grid-template-columns:minmax(0,1fr);
   gap:18px;
   margin-top:18px;
 }
@@ -210,9 +210,85 @@ button,select,input{font:inherit}
 }
 .panel-inline{padding:20px}
 .panel-control{
-  position:sticky;
-  top:24px;
+  position:static;
   align-self:start;
+}
+.control-hero-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(320px,0.85fr);
+  gap:18px;
+  align-items:stretch;
+}
+.control-main,
+.control-preview{
+  min-width:0;
+}
+.control-preview{
+  padding:18px;
+  border-radius:26px;
+  background:
+    radial-gradient(circle at top right, rgba(83,182,255,0.13), transparent 34%),
+    linear-gradient(180deg, rgba(214,82,93,0.08), rgba(16,25,38,0.92));
+  border:1px solid rgba(255,255,255,0.08);
+}
+.preview-stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin-top:14px;
+}
+.preview-stat{
+  padding:14px;
+  border-radius:18px;
+  background:rgba(255,255,255,0.04);
+}
+.preview-stat span{
+  display:block;
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+.preview-stat strong{
+  display:block;
+  margin-top:6px;
+  font-size:22px;
+  font-weight:900;
+}
+.preview-market-board{
+  display:grid;
+  gap:10px;
+  margin-top:18px;
+}
+.preview-market-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:16px;
+  background:rgba(255,255,255,0.03);
+}
+.preview-market-row span:first-child{font-size:13px;font-weight:800}
+.preview-badge{
+  min-width:74px;
+  text-align:center;
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+}
+.preview-badge.bet{
+  background:rgba(35,201,120,0.14);
+  color:#8ef2b9;
+}
+.preview-badge.watch{
+  background:rgba(242,190,89,0.14);
+  color:#ffd98a;
+}
+.preview-badge.avoid{
+  background:rgba(214,82,93,0.14);
+  color:#ffb4bc;
 }
 .panel-kicker{
   display:inline-flex;
@@ -854,12 +930,12 @@ button,select,input{font:inherit}
 
 @media (max-width: 1180px){
   .layout{grid-template-columns:1fr}
-  .panel-control{position:static}
   .analysis-bottom{grid-template-columns:1fr}
 }
 
 @media (max-width: 920px){
   .brand-name{font-size:38px}
+  .control-hero-grid,
   .analysis-top-grid,
   .analysis-overview,
   .hero-metrics,
@@ -867,6 +943,7 @@ button,select,input{font:inherit}
   .market-groups-grid,
   .stage-grid,
   .radar-grid,
+  .preview-stats,
   .backtest-summary,
   .admin-watchdog-grid{
     grid-template-columns:1fr;
