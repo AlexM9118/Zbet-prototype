@@ -63,6 +63,10 @@ function recentStrengthScore(teamStats) {
 }
 
 function buildPowerRanking(leagueStats, selectedTeams = []) {
+  return buildLeagueTableRows(leagueStats, selectedTeams).slice(0, 8);
+}
+
+export function buildLeagueTableRows(leagueStats, selectedTeams = []) {
   if (!leagueStats?.teamStats) return [];
   const selectedSet = new Set(selectedTeams.map((team) => normalizeName(team)).filter(Boolean));
   return Object.entries(leagueStats.teamStats)
@@ -75,8 +79,7 @@ function buildPowerRanking(leagueStats, selectedTeams = []) {
       cards: (((stats.homeYCFor || 0) + (stats.awayYCFor || 0)) / 2),
       isSelected: selectedSet.has(normalizeName(team))
     }))
-    .sort((left, right) => right.score - left.score)
-    .slice(0, 8);
+    .sort((left, right) => right.score - left.score);
 }
 
 function getSelectionPrice(match, market, selection) {
@@ -423,6 +426,7 @@ export function buildMatchAnalysis(match, historyEntry, leagueStats = null) {
   const canonicalRows = pickCanonicalRows(groupMap);
   const { primary, secondary } = chooseRecommendations(marketGroups);
   const powerRanking = buildPowerRanking(leagueStats, [match.home, match.away]);
+  const leagueTableRows = buildLeagueTableRows(leagueStats, [match.home, match.away]).slice(0, 18);
   const metrics = {
     goals,
     goalsHt,
@@ -459,6 +463,7 @@ export function buildMatchAnalysis(match, historyEntry, leagueStats = null) {
     secondary,
     reasons,
     powerRanking,
+    leagueTableRows,
     metrics
   };
 }

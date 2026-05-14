@@ -27,7 +27,7 @@ let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
-const APP_VERSION = "21";
+const APP_VERSION = "22";
 
 const el = (id) => document.getElementById(id);
 
@@ -80,14 +80,14 @@ function getDataStatus() {
   if (!hasUpcoming && latestDay) {
     return {
       stale: true,
-      message: `Feed-ul actual se opreste la ${fmtDayLong(latestDay)}${generatedLabel ? `, generat la ${generatedLabel}` : ""}. E nevoie de refresh pentru meciurile noi.`
+      message: `Snapshot activ: ${fmtDayLong(latestDay)}${generatedLabel ? ` • generat la ${generatedLabel}` : ""}. Pentru meciuri mai noi este necesar un refresh al feed-ului.`
     };
   }
 
   if (latestDayStale) {
     return {
       stale: true,
-      message: `Datele din aplicatie sunt in urma fata de azi. Ultima zi din snapshot este ${fmtDayLong(latestDay)}${generatedLabel ? `, generat la ${generatedLabel}` : ""}.`
+      message: `Aplicatia foloseste momentan snapshot-ul din ${fmtDayLong(latestDay)}${generatedLabel ? ` • generat la ${generatedLabel}` : ""}.`
     };
   }
 
@@ -95,7 +95,7 @@ function getDataStatus() {
     return {
       stale: false,
       warn: true,
-      message: `Snapshot-ul curent este mai vechi de 24h${generatedLabel ? `, ultima generare fiind ${generatedLabel}` : ""}. Pot lipsi unele meciuri sau actualizari.`
+      message: `Snapshot-ul curent este mai vechi de 24h${generatedLabel ? ` • ultima generare ${generatedLabel}` : ""}. Pot lipsi unele meciuri sau actualizari.`
     };
   }
 
@@ -426,6 +426,23 @@ function renderReasonList(analysis) {
     : `<div class="reason-chip">Momentan lipsesc suficiente date pentru o justificare mai bogata.</div>`;
 }
 
+function renderLeagueTable(analysis) {
+  const node = el("leagueTableBody");
+  if (!node) return;
+  const rows = analysis?.leagueTableRows || [];
+  node.innerHTML = rows.length
+    ? rows.map((row, index) => `
+      <div class="league-table-row${row.isSelected ? " is-selected" : ""}">
+        <div class="league-table-rank">${index + 1}</div>
+        <div class="league-table-team">${escapeHtml(row.team)}</div>
+        <div class="league-table-metric">${escapeHtml(row.gf.toFixed(2))}</div>
+        <div class="league-table-metric">${escapeHtml(row.ga.toFixed(2))}</div>
+        <div class="league-table-score">${escapeHtml(row.score.toFixed(1))}</div>
+      </div>
+    `).join("")
+    : `<div class="empty-copy">Tabela ligii apare dupa ce competitia are o sursa statistica asociata.</div>`;
+}
+
 function renderMatrix(analysis) {
   const node = el("matrixGrid");
   if (!node) return;
@@ -548,16 +565,21 @@ function renderAnalysisEmpty(message = "Alege competitia si meciul, apoi deschid
   el("marketGroupsGrid").innerHTML = "";
   el("formGrid").innerHTML = "";
   el("powerRankingBody").innerHTML = "";
+  el("leagueTableBody").innerHTML = `<div class="empty-copy">Tabela ligii si tabloul de piete apar dupa selectia meciului.</div>`;
 }
 
 function renderAnalysis() {
   const panel = el("analysisPanel");
-  if (state.activeTab !== "analyzer" || !state.analysisVisible) {
+  if (state.activeTab !== "analyzer") {
     panel.hidden = true;
     return;
   }
 
   panel.hidden = false;
+  if (!state.analysisVisible) {
+    renderAnalysisEmpty("Alege competitia, apoi un meci sau toata etapa. ZBet iti va construi aici tabloul complet: recomandari, matrice de piete si pulse-ul ligii.");
+    return;
+  }
   const match = findMatchByFixtureId(state.selectedFixtureId);
   if (!match) {
     renderAnalysisEmpty("Selectia curenta nu mai exista in snapshot-ul activ.");
@@ -575,6 +597,7 @@ function renderAnalysis() {
   renderPickCard(el("bestBetBody"), analysis?.primary, "Best Bet");
   renderPickCard(el("planBBody"), analysis?.secondary, "Plan B");
   renderReasonList(analysis);
+  renderLeagueTable(analysis);
   renderMatrix(analysis);
   renderMarketGroups(analysis);
   renderForm(analysis, historyEntry);
@@ -721,7 +744,8 @@ function renderDataStatus() {
     return;
   }
   notice.hidden = false;
-  notice.innerHTML = `<div class="notice-copy">${escapeHtml(status.message)}</div>`;
+  const tone = status.stale ? "status-stale" : status.warn ? "status-warn" : "status-info";
+  notice.innerHTML = `<div class="notice-pill ${tone}">${escapeHtml(status.message)}</div>`;
 }
 
 function renderBacktest() {

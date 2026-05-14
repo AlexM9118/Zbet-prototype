@@ -275,12 +275,28 @@ button,select,input{font:inherit}
 
 .data-status{
   margin-top:14px;
+}
+.notice-pill{
   padding:14px 16px;
   border-radius:18px;
+  font-size:13px;
+  line-height:1.55;
+}
+.status-stale{
   border:1px solid rgba(214,82,93,0.22);
   background:rgba(125,37,49,0.14);
+  color:#ffd9de;
 }
-.notice-copy{color:#ffd9de;font-size:13px;line-height:1.5}
+.status-warn{
+  border:1px solid rgba(242,190,89,0.22);
+  background:rgba(75,52,19,0.16);
+  color:#ffe7b3;
+}
+.status-info{
+  border:1px solid rgba(83,182,255,0.18);
+  background:rgba(29,52,81,0.16);
+  color:#dbeaf8;
+}
 
 .action-stack{
   display:grid;
@@ -337,6 +353,11 @@ button,select,input{font:inherit}
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:14px;
+}
+.analysis-top-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.5fr) minmax(320px,0.8fr);
+  gap:16px;
 }
 .stage-card,.radar-card{
   width:100%;
@@ -516,6 +537,11 @@ button,select,input{font:inherit}
     linear-gradient(180deg, rgba(214,82,93,0.14), rgba(17,28,42,0.95) 28%);
   border:1px solid rgba(255,255,255,0.08);
 }
+.league-table-panel{
+  background:
+    linear-gradient(180deg, rgba(83,182,255,0.08), rgba(17,28,42,0.95)),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
 .match-hero-title{
   margin:10px 0 0;
   font-size:38px;
@@ -541,6 +567,52 @@ button,select,input{font:inherit}
   letter-spacing:0.1em;
 }
 .hero-metric strong{display:block;margin-top:5px;font-size:18px}
+
+.league-table-head,.league-table-row{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) 52px 52px 68px;
+  gap:10px;
+  align-items:center;
+}
+.league-table-head{
+  padding:0 8px 10px;
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+.league-table-body{
+  display:grid;
+  gap:8px;
+  max-height:520px;
+  overflow:auto;
+  padding-right:4px;
+}
+.league-table-row{
+  padding:11px 8px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.03);
+}
+.league-table-row.is-selected{
+  background:linear-gradient(180deg, rgba(214,82,93,0.12), rgba(17,28,42,0.92));
+  border:1px solid rgba(214,82,93,0.18);
+}
+.league-table-rank{
+  width:24px;
+  height:24px;
+  display:grid;
+  place-items:center;
+  border-radius:999px;
+  background:#162232;
+  font-size:12px;
+  font-weight:900;
+}
+.league-table-team{font-size:13px;font-weight:800}
+.league-table-metric,.league-table-score{
+  color:#d7e3f3;
+  font-size:12px;
+}
+.league-table-score{font-weight:900}
 
 .market-groups-grid{
   display:grid;
@@ -788,6 +860,7 @@ button,select,input{font:inherit}
 
 @media (max-width: 920px){
   .brand-name{font-size:38px}
+  .analysis-top-grid,
   .analysis-overview,
   .hero-metrics,
   .form-grid,
@@ -810,5 +883,6 @@ button,select,input{font:inherit}
   .panel{padding:18px;border-radius:24px}
   .match-hero{padding:18px}
   .match-hero-title{font-size:28px}
+  .league-table-head,.league-table-row{grid-template-columns:28px minmax(0,1fr) 46px 46px 62px}
   .ranking-head,.ranking-row{grid-template-columns:28px minmax(0,1fr) 54px 54px 54px 66px}
 }

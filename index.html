@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#08111b" />
   <title>ZBet</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=21" />
+  <link rel="manifest" href="./manifest.webmanifest?v=22" />
   <link rel="apple-touch-icon" href="./icons/app-icon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=21" />
+  <link rel="stylesheet" href="./styles.css?v=22" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -92,7 +92,25 @@
         </section>
 
         <section id="analysisPanel" class="panel panel-analysis" hidden>
-          <div id="matchHero" class="match-hero"></div>
+          <div class="analysis-top-grid">
+            <div id="matchHero" class="match-hero"></div>
+            <aside class="panel panel-inline league-table-panel">
+              <div class="section-head section-head-tight">
+                <div>
+                  <div class="panel-kicker">League Snapshot</div>
+                  <h3>Tabela ligii</h3>
+                </div>
+              </div>
+              <div class="league-table-head">
+                <span>#</span>
+                <span>Echipa</span>
+                <span>GF</span>
+                <span>GA</span>
+                <span>Pulse</span>
+              </div>
+              <div id="leagueTableBody" class="league-table-body"></div>
+            </aside>
+          </div>
 
           <div class="analysis-overview">
             <article class="pick-card pick-card-primary">
@@ -209,6 +227,6 @@
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=21"></script>
+  <script type="module" src="./app.mjs?v=22"></script>
 </body>
 </html>
