@@ -28,6 +28,27 @@ jobs:
       - name: Build history + team stats
         run: node scripts/build-history-from-sources.js
 
+      - name: Check OddsPapi snapshot freshness
+        id: freshness
+        run: node scripts/oddspapi-refresh-watchdog.mjs
+
+      - name: Ensure data folder exists for OddsPapi fallback
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: mkdir -p data
+
+      - name: Run OddsPapi fallback from daily history workflow
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+          BOOKMAKER: "superbet"
+          VERBOSITY: "2"
+          ODDS_FORMAT: "decimal"
+        run: node scripts/oddspapi-fetch-odds-by-tournaments.js
+
+      - name: Build UI data after OddsPapi fallback
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        run: node scripts/build-ui-data-from-oddspapi.js
+
       - name: Build UI history stats
         run: node scripts/build-ui-history-stats.js
 
@@ -37,12 +58,30 @@ jobs:
       - name: Build backtest summary
         run: node scripts/build-backtest-summary.mjs
 
+      - name: Verify snapshot freshness after daily fallback
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        env:
+          MAX_SNAPSHOT_AGE_HOURS: "30"
+        run: node scripts/verify-odds-snapshot-freshness.mjs
+
+      - name: Update admin watchdog status from daily workflow
+        if: ${{ steps.freshness.outputs.refresh_needed == 'true' }}
+        env:
+          REFRESH_SOURCE: "watchdog"
+          FALLBACK_TRIGGERED: "true"
+          FALLBACK_REASON: ${{ steps.freshness.outputs.reason }}
+        run: node scripts/write-admin-watchdog-status.mjs
+
       - name: Commit outputs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add data/history data/stats
+          git add data/oddspapi_odds.json data/oddspapi_odds_index.json || true
+          git add data/oddspapi_odds_parts || true
+          git add data/ui/admin_watchdog_status.json || true
+          git add data/ui/matches.json data/ui/leagues.json data/ui/index.json data/ui/match || true
           git add data/ui/history_stats.json data/ui/history_archive_index.json data/ui/backtest_summary.json
           if git diff --cached --quiet; then
             echo "No changes to commit."
