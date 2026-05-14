@@ -1,10 +1,10 @@
-const STATIC_CACHE = "zbet-prototype-static-v22";
+const STATIC_CACHE = "zbet-prototype-static-v23";
 const APP_SHELL = [
   "./",
-  "./index.html?v=22",
-  "./styles.css?v=22",
-  "./app.mjs?v=22",
-  "./manifest.webmanifest?v=22",
+  "./index.html?v=23",
+  "./styles.css?v=23",
+  "./app.mjs?v=23",
+  "./manifest.webmanifest?v=23",
   "./icons/app-icon.svg",
   "./icons/zbet-logo.svg",
   "./js/config.mjs",
@@ -59,7 +59,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=22")))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=23")))
     );
     return;
   }

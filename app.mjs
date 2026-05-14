@@ -27,7 +27,7 @@ let pendingWorker = null;
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-prototype-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "zbet-prototype-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
-const APP_VERSION = "22";
+const APP_VERSION = "23";
 
 const el = (id) => document.getElementById(id);
 
@@ -683,6 +683,43 @@ function getRadarMatches() {
     .slice(0, 10);
 }
 
+function scoreFeaturedAnalysis(analysis) {
+  const primary = analysis?.primary;
+  if (!primary) return -999;
+  let score = Number(primary.probability || 0) * 4;
+  if (Number(primary.displayOdds) >= 1.2 && Number(primary.displayOdds) <= 1.55) score += 0.45;
+  if (analysis?.secondary) score += 0.18;
+  if (primary.family === "oneXtwo") score += 0.2;
+  if (primary.family === "doubleChance") score += 0.16;
+  if (primary.family === "corners" || primary.family === "cards") score += 0.12;
+  return score;
+}
+
+async function bootstrapFeaturedMatch() {
+  const latestDay = state.latestAvailableDay || "";
+  const candidates = state.matches.filter((match) => String(match.day || "") === latestDay);
+  if (!candidates.length) return;
+
+  let best = null;
+  for (const match of candidates) {
+    const historyEntry = getHistEntry(match.fixtureId);
+    if (!historyEntry) continue;
+    const analysis = buildMatchAnalysis(match, historyEntry, null);
+    const score = scoreFeaturedAnalysis(analysis);
+    if (!best || score > best.score) {
+      best = { match, score };
+    }
+  }
+
+  const featured = best?.match || candidates[0];
+  if (!featured) return;
+  state.selectedLeague = String(featured.tournamentId || "");
+  state.selectedFixtureId = String(featured.fixtureId || "");
+  state.leagueMode = false;
+  state.analysisVisible = true;
+  await ensureLeagueStats(state.selectedLeague, state.selectedFixtureId);
+}
+
 function renderRadarPanel() {
   const panel = el("radarPanel");
   const grid = el("radarGrid");
@@ -1067,6 +1104,7 @@ async function init() {
   state.backtest = backtestPayload || null;
   restoreAdminMode();
 
+  await bootstrapFeaturedMatch();
   populateControls();
   bindActions();
   renderAll();
