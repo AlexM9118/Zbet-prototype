@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "24";
+const APP_VERSION = "25";
 const UPDATE_BANNER_DISMISSED_KEY = "zbet-mobile-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "zbet-mobile-admin-mode";
 const ADMIN_MODE_CODE = "18111991";
@@ -42,6 +42,50 @@ function initialsFor(name) {
     .split(/\s+/)
     .filter(Boolean);
   return words.slice(0, 2).map((word) => word[0]?.toUpperCase() || "").join("") || "FB";
+}
+
+function monogramFor(name) {
+  const cleaned = String(name || "")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!cleaned.length) return "FB";
+  if (cleaned.length === 1) return cleaned[0].slice(0, 3).toUpperCase();
+  return `${cleaned[0][0] || ""}${cleaned[1][0] || ""}`.toUpperCase();
+}
+
+function hashName(name) {
+  return [...String(name || "")].reduce((acc, char) => ((acc * 31) + char.charCodeAt(0)) >>> 0, 7);
+}
+
+function badgePalette(name) {
+  const hue = hashName(name) % 360;
+  const hueAlt = (hue + 32) % 360;
+  return {
+    primary: `hsl(${hue} 72% 54%)`,
+    secondary: `hsl(${hueAlt} 64% 42%)`,
+    border: `hsla(${hue} 92% 72% / 0.56)`
+  };
+}
+
+function setBadgeVisual(id, name) {
+  const badge = el(id);
+  if (!badge) return;
+  const mono = monogramFor(name);
+  const palette = badgePalette(name);
+  badge.textContent = mono;
+  badge.setAttribute("aria-label", displayTeamName(name));
+  badge.style.setProperty("--badge-primary", palette.primary);
+  badge.style.setProperty("--badge-secondary", palette.secondary);
+  badge.style.setProperty("--badge-border", palette.border);
+}
+
+function badgeMarkup(name, className = "detail-team-mark") {
+  const mono = monogramFor(name);
+  const palette = badgePalette(name);
+  const style = `--badge-primary:${palette.primary};--badge-secondary:${palette.secondary};--badge-border:${palette.border};`;
+  return `<div class="${className}" style="${style}">${escapeHtml(mono)}</div>`;
 }
 
 function getLatestAvailableDay(matches) {
@@ -283,14 +327,15 @@ function renderSearchResults() {
 function renderDashboard() {
   const featured = getFeaturedMatch();
   const analysis = getAnalysis(featured);
-  const leagueCatalog = getLeagueCatalog();
+  const latestDayMatches = state.latestAvailableDay
+    ? state.matches.filter((match) => String(match.day || "") === state.latestAvailableDay)
+    : state.matches;
 
   el("dashboardSubtitle").textContent = state.latestAvailableDay
-    ? `Snapshot activ: ${fmtDayLong(state.latestAvailableDay)}`
+    ? `Tabloul principal pentru ${fmtDayLong(state.latestAvailableDay)}`
     : "Panoul principal al zilei";
-  el("dashboardMatchCount").textContent = String(state.matches.length || 0);
+  el("dashboardMatchCount").textContent = String(latestDayMatches.length || 0);
   el("dashboardAccuracy").textContent = state.backtest?.hitRate != null ? `${state.backtest.hitRate}%` : "—";
-  el("leagueCountBadge").textContent = `${leagueCatalog.length}`;
 
   if (!featured || !analysis) {
     el("featuredMatchTitle").textContent = "Momentan nu exista meci featured";
@@ -301,8 +346,8 @@ function renderDashboard() {
   el("featuredMatchTitle").textContent = `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)}`;
   el("featuredMatchMeta").textContent = `${featured.categoryName} • ${featured.tournamentName} • ${fmtTime(featured.startTime)}`;
   el("featuredMatchPulse").textContent = analysis.hero?.pulseDelta != null ? analysis.hero.pulseDelta.toFixed(1) : "—";
-  el("featuredHomeBadge").textContent = initialsFor(featured.home);
-  el("featuredAwayBadge").textContent = initialsFor(featured.away);
+  setBadgeVisual("featuredHomeBadge", featured.home);
+  setBadgeVisual("featuredAwayBadge", featured.away);
   el("featuredHomeName").textContent = displayTeamName(featured.home);
   el("featuredAwayName").textContent = displayTeamName(featured.away);
   el("featuredPrimaryPick").textContent = analysis.primary?.label || "Fara semnal";
@@ -312,28 +357,6 @@ function renderDashboard() {
   el("featuredExpectedGoals").textContent = analysis.hero?.expectedGoals ? analysis.hero.expectedGoals.toFixed(2) : "—";
   el("featuredExpectedCorners").textContent = analysis.hero?.expectedCorners ? analysis.hero.expectedCorners.toFixed(1) : "—";
   el("featuredExpectedCards").textContent = analysis.hero?.expectedCards ? analysis.hero.expectedCards.toFixed(1) : "—";
-
-  const leagueList = el("leagueList");
-  leagueList.innerHTML = leagueCatalog.slice(0, 6).map((league) => `
-    <button class="league-row" type="button" data-dashboard-league-id="${escapeHtml(league.id)}">
-      <div class="league-row-main">
-        <span class="league-dot"></span>
-        <div>
-          <div class="league-row-title">${escapeHtml(league.tournamentName || league.label)}</div>
-          <div class="league-row-meta">${escapeHtml(league.categoryName || "")} • ${league.matches.length} meciuri</div>
-        </div>
-      </div>
-      <span class="count-pill">${league.matches.length}</span>
-    </button>
-  `).join("");
-
-  leagueList.querySelectorAll("[data-dashboard-league-id]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedLeague = button.getAttribute("data-dashboard-league-id") || "";
-      state.activeScreen = "matches";
-      renderAll();
-    });
-  });
 }
 
 function getVisibleMatches() {
@@ -505,12 +528,12 @@ function buildComparePanel(match, analysis, historyEntry) {
     <article class="compare-card">
       <div class="compare-header">
         <div class="detail-team-block">
-          <div class="detail-team-mark">${escapeHtml(initialsFor(match.home))}</div>
+          ${badgeMarkup(match.home)}
           <span>${escapeHtml(displayTeamName(match.home))}</span>
         </div>
         <div class="screen-subtitle">Forma ultimele 5</div>
         <div class="detail-team-block">
-          <div class="detail-team-mark">${escapeHtml(initialsFor(match.away))}</div>
+          ${badgeMarkup(match.away)}
           <span>${escapeHtml(displayTeamName(match.away))}</span>
         </div>
       </div>
@@ -554,8 +577,8 @@ function renderDetail() {
 
   el("detailLeagueLabel").textContent = `${match.categoryName} • ${match.tournamentName}`;
   el("detailKickoffLabel").textContent = fmtTime(match.startTime);
-  el("detailHomeBadge").textContent = initialsFor(match.home);
-  el("detailAwayBadge").textContent = initialsFor(match.away);
+  setBadgeVisual("detailHomeBadge", match.home);
+  setBadgeVisual("detailAwayBadge", match.away);
   el("detailHomeName").textContent = displayTeamName(match.home);
   el("detailAwayName").textContent = displayTeamName(match.away);
 
