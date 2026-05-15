@@ -42,6 +42,7 @@ button{cursor:pointer}
   display:grid;
   place-items:center;
   padding:8px;
+  background:#05070A;
 }
 
 .device-frame{
@@ -74,19 +75,19 @@ button{cursor:pointer}
   min-width:0;
 }
 .brand-mark{
-  width:40px;
-  height:40px;
+  width:48px;
+  height:48px;
   display:grid;
   place-items:center;
-  border-radius:14px;
+  border-radius:16px;
   background:linear-gradient(180deg, rgba(46,234,122,0.14), rgba(46,234,122,0.05));
   border:1px solid rgba(46,234,122,0.18);
   box-shadow:0 0 0 1px rgba(255,255,255,0.02) inset;
 }
-.brand-mark img{width:28px;height:28px;display:block}
+.brand-mark img{width:36px;height:36px;display:block}
 .brand-copy{min-width:0}
 .brand-name{
-  font-size:24px;
+  font-size:28px;
   font-weight:900;
   line-height:1;
   letter-spacing:0.02em;
@@ -97,7 +98,7 @@ button{cursor:pointer}
   border:none;
   background:none;
   color:var(--green);
-  font-size:11px;
+  font-size:12px;
   font-weight:700;
   letter-spacing:0.04em;
   text-align:left;
@@ -1084,5 +1085,21 @@ button{cursor:pointer}
   .hero-actions,
   .language-switcher{
     grid-template-columns:1fr;
+  }
+}
+
+@media (max-width: 520px){
+  .app-shell{
+    padding:0;
+  }
+
+  .device-frame{
+    width:100vw;
+    height:100dvh;
+    max-height:100dvh;
+    border-radius:0;
+    border-left:none;
+    border-right:none;
+    border-bottom:none;
   }
 }
