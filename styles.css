@@ -518,10 +518,45 @@ button{cursor:pointer}
   color:var(--green);
 }
 
+.matches-toolbar{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:10px;
+}
+.toolbar-pill{
+  border:none;
+  border-radius:16px;
+  padding:12px 10px;
+  background:rgba(255,255,255,0.04);
+  color:var(--text);
+  font-size:12px;
+  font-weight:800;
+}
+
 .snapshot-banner{
   padding:12px 14px;
   color:var(--muted);
   font-size:12px;
+  line-height:1.55;
+}
+.state-card{
+  padding:16px;
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.006));
+  background-color:var(--card);
+  border:1px solid var(--stroke);
+  box-shadow:var(--shadow);
+}
+.state-title{
+  margin-top:8px;
+  font-size:18px;
+  font-weight:900;
+  line-height:1.15;
+}
+.state-copy{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:13px;
   line-height:1.55;
 }
 .chip-row{
@@ -758,6 +793,39 @@ button{cursor:pointer}
   grid-template-columns:1fr 1fr;
   gap:10px;
 }
+.favorites-stack{
+  display:grid;
+  gap:10px;
+  margin-top:14px;
+}
+.favorite-row{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:none;
+  border-radius:18px;
+  padding:12px;
+  background:rgba(255,255,255,0.03);
+  color:var(--text);
+}
+.favorite-row-match{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.favorite-row-title{
+  font-size:13px;
+  font-weight:800;
+  line-height:1.35;
+}
+.favorite-row-meta{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:11px;
+}
 .profile-mini-card{
   padding:14px;
   border-radius:20px;
@@ -939,6 +1007,48 @@ button{cursor:pointer}
 .compare-table{
   display:grid;
   gap:10px;
+}
+.timeline-stack,
+.lineup-stack{
+  display:grid;
+  gap:12px;
+}
+.timeline-row{
+  display:grid;
+  grid-template-columns:16px minmax(0,1fr);
+  gap:12px;
+  align-items:flex-start;
+}
+.timeline-dot{
+  width:12px;
+  height:12px;
+  margin-top:4px;
+  border-radius:999px;
+  background:var(--green);
+  box-shadow:0 0 18px rgba(46,234,122,0.35);
+}
+.timeline-stamp{
+  color:var(--green);
+  font-size:11px;
+  font-weight:800;
+}
+.timeline-title{
+  margin-top:4px;
+  font-size:14px;
+  font-weight:900;
+}
+.timeline-text,
+.lineup-copy{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+.lineup-card{
+  padding:14px;
+  border-radius:18px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.05);
 }
 .compare-row{
   display:grid;

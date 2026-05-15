@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#05070A" />
   <title>AIRO</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=28" />
+  <link rel="manifest" href="./manifest.webmanifest?v=29" />
   <link rel="apple-touch-icon" href="./icons/airo-mark.svg" />
-  <link rel="stylesheet" href="./styles.css?v=28" />
+  <link rel="stylesheet" href="./styles.css?v=29" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -124,8 +124,15 @@
             <button id="resetLeagueFilterBtn" class="ghost-link" type="button">Reset</button>
           </div>
 
+          <div class="matches-toolbar">
+            <button id="matchesSearchBtn" class="toolbar-pill" type="button">Search</button>
+            <button id="matchesFilterBtn" class="toolbar-pill" type="button">Filters</button>
+            <button id="matchesCalendarBtn" class="toolbar-pill" type="button">Calendar</button>
+          </div>
+
           <div class="segmented-tabs">
             <button class="segmented-tab is-active" data-filter="latest" type="button">Today</button>
+            <button class="segmented-tab" data-filter="live" type="button">Live</button>
             <button class="segmented-tab" data-filter="all" type="button">Upcoming</button>
             <button class="segmented-tab" data-filter="featured" type="button">AI Picks</button>
           </div>
@@ -238,6 +245,14 @@
             </article>
           </section>
 
+          <section class="profile-card">
+            <div class="section-header">
+              <div class="section-title">Saved matches</div>
+              <div class="section-chip">Favorites</div>
+            </div>
+            <div id="profileFavoritesList" class="favorites-stack"></div>
+          </section>
+
           <section class="kyro-plus-card compact-plus">
             <div class="section-kicker">AIRO+</div>
             <h3>Elite analytics access.</h3>
@@ -277,14 +292,16 @@
               <button class="detail-tab is-active" data-detail-tab="overview" type="button">Overview</button>
               <button class="detail-tab" data-detail-tab="insight" type="button">AI Insight</button>
               <button class="detail-tab" data-detail-tab="stats" type="button">Stats</button>
-              <button class="detail-tab" data-detail-tab="compare" type="button">Compare</button>
+              <button class="detail-tab" data-detail-tab="timeline" type="button">Timeline</button>
+              <button class="detail-tab" data-detail-tab="lineups" type="button">Lineups</button>
             </div>
           </div>
 
           <div id="detailOverviewTab" class="detail-panel"></div>
           <div id="detailInsightTab" class="detail-panel" hidden></div>
           <div id="detailStatsTab" class="detail-panel" hidden></div>
-          <div id="detailCompareTab" class="detail-panel" hidden></div>
+          <div id="detailTimelineTab" class="detail-panel" hidden></div>
+          <div id="detailLineupsTab" class="detail-panel" hidden></div>
         </section>
       </main>
 
@@ -334,6 +351,6 @@
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=28"></script>
+  <script type="module" src="./app.mjs?v=29"></script>
 </body>
 </html>

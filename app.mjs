@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "28";
+const APP_VERSION = "29";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -21,6 +21,7 @@ const COPY = {
     matchesSubtitle: "Intelligent match explorer.",
     reset: "Reset",
     filterToday: "Today",
+    filterLive: "Live",
     filterUpcoming: "Upcoming",
     filterAi: "AI Picks",
     aiTitle: "AIRO AI",
@@ -47,9 +48,12 @@ const COPY = {
     detailOverview: "Overview",
     detailInsight: "AI Insight",
     detailStats: "Stats",
-    detailCompare: "Compare",
+    detailTimeline: "Timeline",
+    detailLineups: "Lineups",
     modelPulse: "Recent model pulse",
     signalRate: "AIRO signal rate",
+    noData: "Data unavailable.",
+    savedMatches: "Saved matches",
     reloadTitle: "A new version is ready",
     reloadCopy: "Reload the app to switch to the latest AIRO interface.",
     reloadAction: "Reload"
@@ -67,6 +71,7 @@ const COPY = {
     matchesSubtitle: "Explorator inteligent de meciuri.",
     reset: "Reset",
     filterToday: "Azi",
+    filterLive: "Live",
     filterUpcoming: "Viitoare",
     filterAi: "Picks AI",
     aiTitle: "AIRO AI",
@@ -93,9 +98,12 @@ const COPY = {
     detailOverview: "Prezentare",
     detailInsight: "Insight AI",
     detailStats: "Statistici",
-    detailCompare: "Comparatie",
+    detailTimeline: "Timeline",
+    detailLineups: "Formatii",
     modelPulse: "Puls model recent",
     signalRate: "Rata de semnal AIRO",
+    noData: "Date indisponibile.",
+    savedMatches: "Meciuri salvate",
     reloadTitle: "Este gata o versiune noua",
     reloadCopy: "Reincarca aplicatia pentru cea mai noua interfata AIRO.",
     reloadAction: "Reincarca"
@@ -325,6 +333,8 @@ function getVisibleMatches() {
   let matches = [...state.matches];
   if (state.matchFilter === "latest" && state.latestAvailableDay) {
     matches = matches.filter((match) => String(match.day || "") === state.latestAvailableDay);
+  } else if (state.matchFilter === "live" && state.latestAvailableDay) {
+    matches = matches.filter((match) => String(match.day || "") === state.latestAvailableDay).slice(0, 8);
   } else if (state.matchFilter === "featured") {
     matches = getTopMatches(16).map((item) => item.match);
   }
@@ -395,6 +405,9 @@ function renderShellCopy() {
   el("feedDateChip").textContent = t("latest");
   el("matchesSubtitle").textContent = t("matchesSubtitle");
   el("resetLeagueFilterBtn").textContent = t("reset");
+  el("matchesSearchBtn").textContent = state.language === "ro" ? "Cauta" : "Search";
+  el("matchesFilterBtn").textContent = state.language === "ro" ? "Filtre" : "Filters";
+  el("matchesCalendarBtn").textContent = state.language === "ro" ? "Calendar" : "Calendar";
   el("navHomeBtn").lastElementChild.textContent = "Home";
   el("navMatchesBtn").lastElementChild.textContent = t("matches");
   el("navAiBtn").lastElementChild.textContent = "AI";
@@ -406,6 +419,16 @@ function renderShellCopy() {
   el("modelSummaryModal").querySelector(".modal-kicker").textContent = t("modelPulse");
 }
 
+function renderStateCard(title, copy) {
+  return `
+    <article class="state-card">
+      <div class="section-kicker">${escapeHtml(state.language === "ro" ? "AIRO State" : "AIRO State")}</div>
+      <div class="state-title">${escapeHtml(title)}</div>
+      <div class="state-copy">${escapeHtml(copy)}</div>
+    </article>
+  `;
+}
+
 function renderHome() {
   const featured = getFeaturedMatch();
   const analysis = getAnalysis(featured);
@@ -414,6 +437,11 @@ function renderHome() {
   if (!featured || !analysis) {
     el("heroMatchTitle").textContent = state.language === "ro" ? "Nu exista un meci principal in snapshot" : "No featured match in the snapshot";
     el("heroMatchMeta").textContent = getSnapshotNotice();
+    el("heroInsight").textContent = t("noData");
+    el("heroConfidence").textContent = "—";
+    el("heroPrimaryPick").textContent = "—";
+    el("heroSecondaryPick").textContent = "—";
+    el("heroMomentum").textContent = "—";
     return;
   }
 
@@ -493,6 +521,7 @@ function renderMatches() {
   document.querySelectorAll("[data-filter]").forEach((button) => {
     button.classList.toggle("is-active", button.getAttribute("data-filter") === state.matchFilter);
     if (button.getAttribute("data-filter") === "latest") button.textContent = t("filterToday");
+    if (button.getAttribute("data-filter") === "live") button.textContent = t("filterLive");
     if (button.getAttribute("data-filter") === "all") button.textContent = t("filterUpcoming");
     if (button.getAttribute("data-filter") === "featured") button.textContent = t("filterAi");
   });
@@ -548,7 +577,10 @@ function renderMatches() {
         </button>
       `;
     }).join("")
-    : `<article class="match-card"><div class="match-title">${state.language === "ro" ? "Nu exista meciuri pentru filtrul curent." : "No matches for the current filter."}</div><div class="match-meta">${state.language === "ro" ? "Schimba ziua sau competitia." : "Try another filter or league."}</div></article>`;
+    : renderStateCard(
+        state.language === "ro" ? "Nu exista meciuri pentru filtrul curent." : "No matches for the current filter.",
+        state.language === "ro" ? "Schimba ziua, liga sau tabul activ." : "Try another day, league or active tab."
+      );
 
   list.querySelectorAll("[data-open-match]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -661,6 +693,47 @@ function renderProfile() {
 
   const titleNodes = el("profileScreen").querySelectorAll(".section-title");
   if (titleNodes[0]) titleNodes[0].textContent = t("language");
+  if (titleNodes[1]) titleNodes[1].textContent = t("savedMatches");
+
+  const profileChips = el("profileScreen").querySelectorAll(".section-chip");
+  if (profileChips[0]) profileChips[0].textContent = t("settings");
+  if (profileChips[1]) profileChips[1].textContent = t("favorites");
+
+  const miniLabels = el("profileScreen").querySelectorAll(".profile-mini-card .section-kicker");
+  if (miniLabels[0]) miniLabels[0].textContent = t("favorites");
+  if (miniLabels[1]) miniLabels[1].textContent = t("reports");
+
+  const favoritesList = el("profileFavoritesList");
+  const favoriteMatches = [...state.favoriteFixtureIds]
+    .map((fixtureId) => findMatchByFixtureId(fixtureId))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  favoritesList.innerHTML = favoriteMatches.length
+    ? favoriteMatches.map((match) => `
+      <button class="favorite-row" type="button" data-open-favorite="${escapeHtml(String(match.fixtureId))}">
+        <div class="favorite-row-match">
+          ${badgeMarkup(match.home, "mini-crest")}
+          <div>
+            <div class="favorite-row-title">${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</div>
+            <div class="favorite-row-meta">${escapeHtml(match.tournamentName)} • ${escapeHtml(fmtDayLong(match.day))}</div>
+          </div>
+        </div>
+        <strong>›</strong>
+      </button>
+    `).join("")
+    : renderStateCard(
+        state.language === "ro" ? "Nu ai meciuri salvate." : "No saved matches yet.",
+        state.language === "ro" ? "Salveaza meciuri din Home sau Matches pentru acces rapid aici." : "Save matches from Home or Matches for quick access here."
+      );
+
+  favoritesList.querySelectorAll("[data-open-favorite]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedFixtureId = button.getAttribute("data-open-favorite") || "";
+      state.activeScreen = "detail";
+      renderAll();
+    });
+  });
 }
 
 function buildOverviewMarkup(match, analysis) {
@@ -742,7 +815,82 @@ function buildStatsMarkup(analysis) {
   `;
 }
 
-function buildCompareMarkup(match, analysis, historyEntry) {
+function buildTimelineMarkup(match, analysis) {
+  const events = [
+    {
+      stamp: fmtDayLong(match.day),
+      title: state.language === "ro" ? "Meci programat" : "Fixture scheduled",
+      copy: `${displayTeamName(match.home)} vs ${displayTeamName(match.away)} • ${fmtTime(match.startTime)}`
+    },
+    {
+      stamp: state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt).toLocaleTimeString(state.language === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" }) : "—",
+      title: state.language === "ro" ? "Snapshot AIRO" : "AIRO snapshot",
+      copy: getSnapshotNotice()
+    },
+    {
+      stamp: analysis?.primary ? pct01(analysis.primary.probability) : "—",
+      title: state.language === "ro" ? "Semnal principal blocat" : "Primary signal locked",
+      copy: analysis?.primary?.label || t("noData")
+    }
+  ];
+
+  return `
+    <article class="detail-panel-card">
+      <div class="section-kicker">Timeline</div>
+      <div class="timeline-stack">
+        ${events.map((event) => `
+          <div class="timeline-row">
+            <div class="timeline-dot"></div>
+            <div class="timeline-copy">
+              <div class="timeline-stamp">${escapeHtml(event.stamp)}</div>
+              <div class="timeline-title">${escapeHtml(event.title)}</div>
+              <div class="timeline-text">${escapeHtml(event.copy)}</div>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </article>
+  `;
+}
+
+function buildLineupsMarkup(match, historyEntry) {
+  const homeForm = historyEntry?.homeRecentResults || [];
+  const awayForm = historyEntry?.awayRecentResults || [];
+  const homeLine = homeForm.length ? homeForm.map((item) => item.result || "—").join(" • ") : t("noData");
+  const awayLine = awayForm.length ? awayForm.map((item) => item.result || "—").join(" • ") : t("noData");
+
+  return `
+    <article class="detail-panel-card">
+      <div class="section-kicker">${state.language === "ro" ? "Lineups" : "Lineups"}</div>
+      <div class="insight-copy">${state.language === "ro" ? "Formatiile oficiale nu sunt inca disponibile in feedul public curent. AIRO afiseaza in schimb contextul recent al echipelor." : "Official lineups are not yet available in the current public feed. AIRO shows recent team context instead."}</div>
+    </article>
+    <article class="compare-card">
+      <div class="compare-header">
+        <div class="score-team">
+          ${badgeMarkup(match.home)}
+          <span>${escapeHtml(displayTeamName(match.home))}</span>
+        </div>
+        <div class="section-chip">VS</div>
+        <div class="score-team">
+          ${badgeMarkup(match.away)}
+          <span>${escapeHtml(displayTeamName(match.away))}</span>
+        </div>
+      </div>
+      <div class="lineup-stack">
+        <div class="lineup-card">
+          <div class="section-kicker">${state.language === "ro" ? "Forma recenta gazde" : "Home recent form"}</div>
+          <div class="lineup-copy">${escapeHtml(homeLine)}</div>
+        </div>
+        <div class="lineup-card">
+          <div class="section-kicker">${state.language === "ro" ? "Forma recenta oaspeti" : "Away recent form"}</div>
+          <div class="lineup-copy">${escapeHtml(awayLine)}</div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function buildStatsMarkupWithComparison(match, analysis, historyEntry) {
   const homeStats = historyEntry?.homeStats;
   const awayStats = historyEntry?.awayStats;
   const rows = [
@@ -753,6 +901,7 @@ function buildCompareMarkup(match, analysis, historyEntry) {
   ];
 
   return `
+    ${buildStatsMarkup(analysis)}
     <article class="compare-card">
       <div class="compare-header">
         <div class="score-team">
@@ -798,18 +947,21 @@ function renderDetail() {
     if (tab === "overview") button.textContent = t("detailOverview");
     if (tab === "insight") button.textContent = t("detailInsight");
     if (tab === "stats") button.textContent = t("detailStats");
-    if (tab === "compare") button.textContent = t("detailCompare");
+    if (tab === "timeline") button.textContent = t("detailTimeline");
+    if (tab === "lineups") button.textContent = t("detailLineups");
   });
 
   el("detailOverviewTab").hidden = state.detailTab !== "overview";
   el("detailInsightTab").hidden = state.detailTab !== "insight";
   el("detailStatsTab").hidden = state.detailTab !== "stats";
-  el("detailCompareTab").hidden = state.detailTab !== "compare";
+  el("detailTimelineTab").hidden = state.detailTab !== "timeline";
+  el("detailLineupsTab").hidden = state.detailTab !== "lineups";
 
   el("detailOverviewTab").innerHTML = analysis ? buildOverviewMarkup(match, analysis) : "";
   el("detailInsightTab").innerHTML = analysis ? buildInsightMarkup(match, analysis) : "";
-  el("detailStatsTab").innerHTML = analysis ? buildStatsMarkup(analysis) : "";
-  el("detailCompareTab").innerHTML = analysis ? buildCompareMarkup(match, analysis, historyEntry) : "";
+  el("detailStatsTab").innerHTML = analysis ? buildStatsMarkupWithComparison(match, analysis, historyEntry) : "";
+  el("detailTimelineTab").innerHTML = analysis ? buildTimelineMarkup(match, analysis) : renderStateCard(t("noData"), getSnapshotNotice());
+  el("detailLineupsTab").innerHTML = buildLineupsMarkup(match, historyEntry);
 
   el("detailOverviewTab").querySelectorAll("[data-ask-ai-detail]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1029,6 +1181,24 @@ function bindActions() {
 
   el("resetLeagueFilterBtn").addEventListener("click", () => {
     state.selectedLeague = "";
+    renderMatches();
+  });
+
+  el("matchesSearchBtn").addEventListener("click", () => {
+    const drawer = el("searchDrawer");
+    drawer.hidden = false;
+    state.activeScreen = "matches";
+    renderAll();
+    el("searchInput").focus();
+  });
+
+  el("matchesFilterBtn").addEventListener("click", () => {
+    state.matchFilter = state.matchFilter === "featured" ? "latest" : "featured";
+    renderMatches();
+  });
+
+  el("matchesCalendarBtn").addEventListener("click", () => {
+    state.matchFilter = state.matchFilter === "all" ? "latest" : "all";
     renderMatches();
   });
 
