@@ -1,12 +1,11 @@
-const STATIC_CACHE = "zbet-prototype-static-v25";
+const STATIC_CACHE = "kyro-static-v26";
 const APP_SHELL = [
   "./",
-  "./index.html?v=25",
-  "./styles.css?v=25",
-  "./app.mjs?v=25",
-  "./manifest.webmanifest?v=25",
-  "./icons/app-icon.svg",
-  "./icons/zbet-logo.svg",
+  "./index.html?v=26",
+  "./styles.css?v=26",
+  "./app.mjs?v=26",
+  "./manifest.webmanifest?v=26",
+  "./icons/kyro-mark.svg",
   "./js/config.mjs",
   "./js/models.mjs",
   "./js/utils.mjs",
@@ -59,7 +58,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=25")))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=26")))
     );
     return;
   }
