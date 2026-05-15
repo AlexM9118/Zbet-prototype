@@ -65,7 +65,7 @@ button{cursor:pointer}
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:14px 16px 10px;
+  padding:calc(14px + env(safe-area-inset-top)) 16px 10px;
 }
 .brand-cluster{
   display:flex;

@@ -1,11 +1,11 @@
-const STATIC_CACHE = "kyro-static-v26";
+const STATIC_CACHE = "airo-static-v27";
 const APP_SHELL = [
   "./",
-  "./index.html?v=26",
-  "./styles.css?v=26",
-  "./app.mjs?v=26",
-  "./manifest.webmanifest?v=26",
-  "./icons/kyro-mark.svg",
+  "./index.html?v=27",
+  "./styles.css?v=27",
+  "./app.mjs?v=27",
+  "./manifest.webmanifest?v=27",
+  "./icons/airo-mark.svg",
   "./js/config.mjs",
   "./js/models.mjs",
   "./js/utils.mjs",
@@ -58,7 +58,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=26")))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=27")))
     );
     return;
   }

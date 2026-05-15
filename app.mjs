@@ -1,20 +1,20 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "26";
-const UPDATE_BANNER_DISMISSED_KEY = "kyro-update-dismissed";
-const ADMIN_MODE_STORAGE_KEY = "kyro-admin-mode";
-const LANGUAGE_STORAGE_KEY = "kyro-language";
+const APP_VERSION = "27";
+const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
+const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
+const LANGUAGE_STORAGE_KEY = "airo-language";
 const ADMIN_MODE_CODE = "18111991";
 
 const COPY = {
   en: {
     greeting: "Good evening, Alex",
-    homeSubtitle: "Here’s what KYRO found for you.",
+    homeSubtitle: "Here’s what AIRO found for you.",
     exploreAll: "Explore all",
     topInsight: "Top AI Insight",
     viewAnalysis: "View Analysis",
-    askKyro: "Ask KYRO",
+    askKyro: "Ask AIRO",
     topInsights: "Top AI insights",
     latest: "Latest",
     matches: "Matches",
@@ -23,7 +23,7 @@ const COPY = {
     filterToday: "Today",
     filterUpcoming: "Upcoming",
     filterAi: "AI Picks",
-    aiTitle: "KYRO AI",
+    aiTitle: "AIRO AI",
     aiSubtitle: "Ask sharper questions. Read the match deeper.",
     online: "Online",
     aiInput: "Ask anything…",
@@ -40,27 +40,27 @@ const COPY = {
     reports: "Reports",
     trackedTeams: "Tracked teams",
     recentHitRate: "Recent hit rate",
-    kyroPlus: "KYRO+",
+    kyroPlus: "AIRO+",
     kyroPlusTitle: "Advanced mode for deeper football intelligence.",
-    unlockKyroPlus: "Unlock KYRO+",
-    kyroPlusSubtext: "Advanced football analysis powered by KYRO.",
+    unlockKyroPlus: "Unlock AIRO+",
+    kyroPlusSubtext: "Advanced football analysis powered by AIRO.",
     detailOverview: "Overview",
     detailInsight: "AI Insight",
     detailStats: "Stats",
     detailCompare: "Compare",
     modelPulse: "Recent model pulse",
-    signalRate: "KYRO signal rate",
+    signalRate: "AIRO signal rate",
     reloadTitle: "A new version is ready",
-    reloadCopy: "Reload the app to switch to the latest KYRO interface.",
+    reloadCopy: "Reload the app to switch to the latest AIRO interface.",
     reloadAction: "Reload"
   },
   ro: {
     greeting: "Buna seara, Alex",
-    homeSubtitle: "Iata ce a gasit KYRO pentru tine.",
+    homeSubtitle: "Iata ce a gasit AIRO pentru tine.",
     exploreAll: "Vezi tot",
     topInsight: "Insight AI principal",
     viewAnalysis: "Vezi analiza",
-    askKyro: "Intreaba KYRO",
+    askKyro: "Intreaba AIRO",
     topInsights: "Top insight-uri AI",
     latest: "Ultimul snapshot",
     matches: "Meciuri",
@@ -69,7 +69,7 @@ const COPY = {
     filterToday: "Azi",
     filterUpcoming: "Viitoare",
     filterAi: "Picks AI",
-    aiTitle: "KYRO AI",
+    aiTitle: "AIRO AI",
     aiSubtitle: "Pune intrebari mai bune. Citeste meciul mai profund.",
     online: "Online",
     aiInput: "Intreaba orice…",
@@ -86,18 +86,18 @@ const COPY = {
     reports: "Rapoarte",
     trackedTeams: "Echipe urmarite",
     recentHitRate: "Rata recenta",
-    kyroPlus: "KYRO+",
+    kyroPlus: "AIRO+",
     kyroPlusTitle: "Mod avansat pentru inteligenta fotbalistica mai profunda.",
-    unlockKyroPlus: "Deblocheaza KYRO+",
-    kyroPlusSubtext: "Analiza avansata de fotbal, sustinuta de KYRO.",
+    unlockKyroPlus: "Deblocheaza AIRO+",
+    kyroPlusSubtext: "Analiza avansata de fotbal, sustinuta de AIRO.",
     detailOverview: "Prezentare",
     detailInsight: "Insight AI",
     detailStats: "Statistici",
     detailCompare: "Comparatie",
     modelPulse: "Puls model recent",
-    signalRate: "Rata de semnal KYRO",
+    signalRate: "Rata de semnal AIRO",
     reloadTitle: "Este gata o versiune noua",
-    reloadCopy: "Reincarca aplicatia pentru cea mai noua interfata KYRO.",
+    reloadCopy: "Reincarca aplicatia pentru cea mai noua interfata AIRO.",
     reloadAction: "Reincarca"
   }
 };
@@ -291,14 +291,14 @@ function ensureSelectedFixture() {
 }
 
 function buildInsightSentence(match, analysis) {
-  if (!match || !analysis) return "KYRO is waiting for a cleaner signal on this board.";
+  if (!match || !analysis) return "AIRO is waiting for a cleaner signal on this board.";
   const expectedGoals = analysis.hero?.expectedGoals ? analysis.hero.expectedGoals.toFixed(2) : null;
   const primary = analysis.primary?.label || "the main angle";
   const home = displayTeamName(match.home);
   const away = displayTeamName(match.away);
   if (state.language === "ro") {
     return expectedGoals
-      ? `${home} vs ${away} are un total proiectat de ${expectedGoals} goluri, iar KYRO vede ${primary.toLowerCase()} ca semnal principal.`
+      ? `${home} vs ${away} are un total proiectat de ${expectedGoals} goluri, iar AIRO vede ${primary.toLowerCase()} ca semnal principal.`
       : `${home} vs ${away} ramane unul dintre cele mai puternice spoturi din snapshotul curent.`;
   }
   return expectedGoals
@@ -388,7 +388,7 @@ function renderSearchResults() {
 }
 
 function renderShellCopy() {
-  document.title = "KYRO";
+  document.title = "AIRO";
   el("homeGreeting").textContent = t("greeting");
   el("homeSubtitle").textContent = t("homeSubtitle");
   el("openMatchesFromHomeBtn").textContent = t("exploreAll");
@@ -573,7 +573,7 @@ function renderAiScreen() {
       ? (state.language === "ro"
         ? `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)} este spotul principal: ${analysis.primary?.label || "fara semnal clar"} la ${analysis.primary ? pct01(analysis.primary.probability) : "—"}.`
         : `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)} is the strongest spot right now: ${analysis.primary?.label || "no clear signal"} at ${analysis.primary ? pct01(analysis.primary.probability) : "—"}.`)
-      : (state.language === "ro" ? "KYRO asteapta mai multe date pentru un raspuns clar." : "KYRO is waiting for more data to produce a stronger answer."));
+      : (state.language === "ro" ? "AIRO asteapta mai multe date pentru un raspuns clar." : "AIRO is waiting for more data to produce a stronger answer."));
 
   const grid = el("aiPromptGrid");
   const prompts = state.language === "ro"
@@ -619,7 +619,7 @@ function renderAlerts() {
     },
     {
       title: state.language === "ro" ? "Momentum Change" : "Momentum Change",
-      copy: state.language === "ro" ? "KYRO urmareste meciurile cu schimbare brusca de ritm." : "KYRO watches for aggressive shifts in match tempo.",
+      copy: state.language === "ro" ? "AIRO urmareste meciurile cu schimbare brusca de ritm." : "AIRO watches for aggressive shifts in match tempo.",
       minute: "38′"
     },
     {
@@ -857,7 +857,7 @@ function renderBacktestModal() {
     <article class="backtest-card">
       <div class="backtest-label">No bet</div>
       <div class="backtest-value">${escapeHtml(String(data.noBet || 0))}</div>
-      <div class="backtest-copy">${escapeHtml(state.language === "ro" ? "Meciurile in care modelul nu a fortat o selectie." : "Matches where KYRO preferred not to force a pick.")}</div>
+      <div class="backtest-copy">${escapeHtml(state.language === "ro" ? "Meciurile in care modelul nu a fortat o selectie." : "Matches where AIRO preferred not to force a pick.")}</div>
     </article>
   `;
 
