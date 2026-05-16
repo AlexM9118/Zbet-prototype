@@ -251,6 +251,9 @@ button{cursor:pointer}
   gap:14px;
   align-content:start;
 }
+#homeScreen{
+  min-height:calc(100dvh - 220px);
+}
 
 .screen-headline{
   display:flex;
@@ -335,6 +338,9 @@ button{cursor:pointer}
     radial-gradient(circle at top right, rgba(46,234,122,0.14), transparent 30%),
     linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.006));
   background-color:var(--card);
+  min-height:min(760px, calc(100dvh - 300px));
+  display:grid;
+  align-content:start;
 }
 .hero-card-top{
   display:flex;
@@ -443,7 +449,8 @@ button{cursor:pointer}
   display:grid;
   grid-template-columns:1.2fr 1fr;
   gap:10px;
-  margin-top:16px;
+  margin-top:auto;
+  padding-top:18px;
 }
 
 .feed-section{display:grid;gap:12px}
@@ -1310,6 +1317,14 @@ button{cursor:pointer}
     border:none;
     padding-bottom:96px;
     background:#05070A;
+  }
+
+  #homeScreen{
+    min-height:calc(100dvh - 205px);
+  }
+
+  .hero-card{
+    min-height:calc(100dvh - 330px);
   }
 
   .bottom-nav{
