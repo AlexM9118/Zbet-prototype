@@ -1406,15 +1406,42 @@ button{cursor:pointer}
   font-size:28px;
   font-weight:800;
 }
+.confidence-ring-v2{
+  --confidence:0;
+  width:102px;
+  height:102px;
+  border-radius:50%;
+  background:
+    conic-gradient(#2EEA7A calc(var(--confidence) * 1%), #7A1F1F 0);
+  display:grid;
+  place-items:center;
+  padding:6px;
+}
+.confidence-ring-v2-inner{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  background:#0b1420;
+  display:grid;
+  place-items:center;
+  text-align:center;
+}
+.confidence-ring-v2-inner strong{
+  font-size:22px;
+  line-height:1;
+}
+.confidence-ring-v2-inner span{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+}
 .analysis-summary-copy{
   margin:16px 0 0;
   color:#d6dde6;
   font-size:15px;
   line-height:1.55;
-}
-.analysis-confidence-bar{
-  max-width:none;
-  margin-top:16px;
 }
 .analysis-section-title{
   font-size:13px;

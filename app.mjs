@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "40";
+const APP_VERSION = "41";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -329,6 +329,18 @@ function buildConfidenceBar(probability, className = "") {
     <div class="confidence-bar ${className}">
       <span class="confidence-bar-fill" style="width:${pct}%"></span>
       <span class="confidence-bar-rest" style="width:${Math.max(0, 100 - pct)}%"></span>
+    </div>
+  `;
+}
+
+function buildConfidenceRing(probability) {
+  const pct = Math.max(0, Math.min(100, Math.round(Number(probability || 0) * 100)));
+  return `
+    <div class="confidence-ring-v2" style="--confidence:${pct};">
+      <div class="confidence-ring-v2-inner">
+        <strong>${pct}%</strong>
+        <span>${state.language === "ro" ? "Confidenta" : "Confidence"}</span>
+      </div>
     </div>
   `;
 }
@@ -667,9 +679,8 @@ function buildOverviewMarkup(match, analysis) {
           <h3>${escapeHtml(primary?.label || "No signal")}</h3>
           <div class="analysis-confidence-line">${escapeHtml(primary ? `${pct01(primary.probability)} ${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}` : "—")}</div>
         </div>
-        <div class="analysis-big-confidence">${escapeHtml(primary ? pct01(primary.probability) : "—")}</div>
+        ${buildConfidenceRing(primary?.probability)}
       </div>
-      ${buildConfidenceBar(primary?.probability, "analysis-confidence-bar")}
       <p class="analysis-summary-copy">${escapeHtml(buildInsightSentence(match, analysis))}</p>
     </article>
   `;
@@ -912,13 +923,13 @@ function renderBottomNav() {
   const map = {
     home: "navHomeBtn",
     matches: "navMatchesBtn",
+    detail: "navAnalysisBtn",
     ai: "navAiBtn",
     profile: "navProfileBtn"
   };
   Object.entries(map).forEach(([screen, id]) => {
     el(id).classList.toggle("is-active", state.activeScreen === screen);
   });
-  el("navAnalysisBtn").classList.toggle("is-active", state.activeScreen === "detail");
 }
 
 function renderScreens() {
@@ -1014,13 +1025,16 @@ function bindActions() {
   el("analysisBackBtn").addEventListener("click", () => { state.activeScreen = "home"; renderAll(); });
   el("profileShortcutBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("profileRefreshBtn").addEventListener("click", () => { window.location.reload(); });
-
-  document.querySelectorAll("[data-filter]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.matchFilter = button.getAttribute("data-filter") || "latest";
-      renderMatches();
+  
+  const bindMatchFilterTabs = () => {
+    document.querySelectorAll("[data-filter]").forEach((button) => {
+      button.onclick = () => {
+        state.matchFilter = button.getAttribute("data-filter") || "latest";
+        renderMatches();
+      };
     });
-  });
+  };
+  bindMatchFilterTabs();
 
   el("resetLeagueFilterBtn").addEventListener("click", () => {
     state.selectedLeague = "";
