@@ -1315,21 +1315,25 @@ button{cursor:pointer}
     min-height:100dvh;
     border-radius:0;
     border:none;
-    padding-bottom:96px;
+    padding-bottom:82px;
     background:#05070A;
   }
 
   #homeScreen{
-    min-height:calc(100dvh - 205px);
+    min-height:calc(100dvh - 176px);
   }
 
   .hero-card{
-    min-height:calc(100dvh - 330px);
+    min-height:calc(100dvh - 268px);
+  }
+
+  .screen-shell{
+    padding-bottom:10px;
   }
 
   .bottom-nav{
     left:10px;
     right:10px;
-    bottom:calc(2px + env(safe-area-inset-bottom));
+    bottom:calc(0px + env(safe-area-inset-bottom));
   }
 }
