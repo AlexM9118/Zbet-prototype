@@ -486,7 +486,7 @@ button{cursor:pointer}
   display:grid;
   grid-template-columns:minmax(0,1fr) 1px 116px 12px;
   gap:14px;
-  min-height:132px;
+  min-height:126px;
 }
 .home-card-left{
   display:grid;
@@ -517,17 +517,17 @@ button{cursor:pointer}
   align-content:center;
 }
 .home-team-name{
-  font-size:14px;
+  font-size:13px;
   font-weight:700;
   line-height:1.18;
 }
 .home-meta-row{
   color:var(--muted);
-  font-size:12px;
+  font-size:11px;
 }
 .home-kickoff-row{
   color:#d3dae4;
-  font-size:12px;
+  font-size:11px;
 }
 .home-card-divider{
   width:1px;
@@ -1815,7 +1815,7 @@ button{cursor:pointer}
   }
 
   .screen-shell{
-    padding:0 20px calc(86px + env(safe-area-inset-bottom));
+    padding:0 20px calc(72px + env(safe-area-inset-bottom));
   }
 
   .screen-view{
@@ -1835,7 +1835,7 @@ button{cursor:pointer}
   }
 
   .home-headline .headline-title{
-    font-size:30px;
+    font-size:26px;
     line-height:1.08;
     max-width:12ch;
   }
@@ -1843,7 +1843,7 @@ button{cursor:pointer}
   .home-match-card{
     grid-template-columns:minmax(0,1fr) 1px 104px 12px;
     gap:12px;
-    min-height:130px;
+    min-height:124px;
   }
 
   .home-card-divider{
@@ -1866,12 +1866,12 @@ button{cursor:pointer}
 
   .bottom-nav{
     gap:0;
-    padding:10px 8px calc(12px + env(safe-area-inset-bottom));
+    padding:8px 8px calc(4px + env(safe-area-inset-bottom));
     border-radius:0;
   }
 
   .bottom-nav-item{
-    padding:6px 2px;
+    padding:4px 2px;
     gap:6px;
     font-size:11px;
   }

@@ -1,8 +1,8 @@
-import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
+import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "44";
+const APP_VERSION = "45";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -499,7 +499,7 @@ function renderHome() {
             <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
             <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
             <div class="home-meta-row">${escapeHtml(match.tournamentName)}</div>
-            <div class="home-kickoff-row">${escapeHtml(fmtTime(match.startTime))}</div>
+            <div class="home-kickoff-row">${escapeHtml(fmtClock(match.startTime))}</div>
           </div>
         </div>
         <div class="home-card-divider"></div>
