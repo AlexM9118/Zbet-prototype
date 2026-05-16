@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#05070A" />
   <title>AIRO</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=32" />
-  <link rel="apple-touch-icon" href="./icons/airo-mark.svg" />
-  <link rel="stylesheet" href="./styles.css?v=32" />
+  <link rel="manifest" href="./manifest.webmanifest?v=33" />
+  <link rel="apple-touch-icon" href="./icons/airo-touch-icon-180.png?v=33" />
+  <link rel="stylesheet" href="./styles.css?v=33" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -36,9 +36,6 @@
         </div>
 
         <div class="topbar-actions">
-          <button id="openAlertsBtn" class="icon-button alerts-button" type="button" aria-label="Alerts">
-            <span class="bell-icon" aria-hidden="true"></span>
-          </button>
           <button id="searchToggleBtn" class="icon-button" type="button" aria-label="Search">
             <span class="search-icon" aria-hidden="true"></span>
           </button>
@@ -188,17 +185,6 @@
           </section>
         </section>
 
-        <section id="alertsScreen" class="screen-view" hidden>
-          <div class="screen-headline">
-            <div>
-              <div class="headline-title">Smart Alerts</div>
-              <div class="headline-subtitle">Real-time triggers around momentum, goals and risk.</div>
-            </div>
-          </div>
-
-          <div id="alertsList" class="alerts-list"></div>
-        </section>
-
         <section id="profileScreen" class="screen-view" hidden>
           <div class="screen-headline">
             <div>
@@ -221,6 +207,14 @@
               <button class="settings-item" type="button"><span>Notifications</span><strong>›</strong></button>
               <button class="settings-item" type="button"><span>Data & Privacy</span><strong>›</strong></button>
             </div>
+          </section>
+
+          <section class="profile-card">
+            <div class="section-header">
+              <div class="section-title">App refresh</div>
+              <div class="section-chip">Manual</div>
+            </div>
+            <button id="profileRefreshBtn" class="cta-button full-width" type="button">Refresh app</button>
           </section>
 
           <section class="profile-card">
@@ -345,6 +339,6 @@
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=32"></script>
+  <script type="module" src="./app.mjs?v=33"></script>
 </body>
 </html>

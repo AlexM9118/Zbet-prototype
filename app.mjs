@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "32";
+const APP_VERSION = "33";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -28,8 +28,6 @@ const COPY = {
     aiSubtitle: "Ask sharper questions. Read the match deeper.",
     online: "Online",
     aiInput: "Ask anything…",
-    alerts: "Smart Alerts",
-    alertsSubtitle: "Real-time triggers around momentum, goals and risk.",
     profile: "Profile",
     profileSubtitle: "Settings, reports and your intelligence layer.",
     account: "Account",
@@ -52,6 +50,9 @@ const COPY = {
     signalRate: "AIRO signal rate",
     noData: "Data unavailable.",
     savedMatches: "Saved matches",
+    refreshApp: "Refresh app",
+    appRefresh: "App refresh",
+    manual: "Manual",
     reloadTitle: "A new version is ready",
     reloadCopy: "Reload the app to switch to the latest AIRO interface.",
     reloadAction: "Reload"
@@ -76,8 +77,6 @@ const COPY = {
     aiSubtitle: "Pune intrebari mai bune. Citeste meciul mai profund.",
     online: "Online",
     aiInput: "Intreaba orice…",
-    alerts: "Alerte inteligente",
-    alertsSubtitle: "Trigger-e in timp real pentru momentum, goluri si risc.",
     profile: "Profil",
     profileSubtitle: "Setari, rapoarte si stratul tau de inteligenta.",
     account: "Cont",
@@ -100,6 +99,9 @@ const COPY = {
     signalRate: "Rata de semnal AIRO",
     noData: "Date indisponibile.",
     savedMatches: "Meciuri salvate",
+    refreshApp: "Reincarca app-ul",
+    appRefresh: "Refresh app",
+    manual: "Manual",
     reloadTitle: "Este gata o versiune noua",
     reloadCopy: "Reincarca aplicatia pentru cea mai noua interfata AIRO.",
     reloadAction: "Reincarca"
@@ -411,7 +413,7 @@ function renderShellCopy() {
   el("applyUpdateBtn").textContent = t("reloadAction");
   el("updateBanner").querySelector(".update-banner-title").textContent = t("reloadTitle");
   el("updateBanner").querySelector(".update-banner-copy").textContent = t("reloadCopy");
-  el("modelSummaryModal").querySelector(".modal-kicker").textContent = t("alerts");
+  el("modelSummaryModal").querySelector(".modal-kicker").textContent = t("modelPulse");
 }
 
 function renderStateCard(title, copy) {
@@ -483,7 +485,6 @@ function renderHome() {
           <button class="cta-button" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">${escapeHtml(t("viewAnalysis"))}</button>
           <div class="feed-actions">
             <button class="icon-button small-icon" type="button" data-toggle-favorite="${escapeHtml(String(match.fixtureId))}">${state.favoriteFixtureIds.has(String(match.fixtureId)) ? "★" : "☆"}</button>
-            <button class="icon-button small-icon" type="button" data-open-alerts>${state.language === "ro" ? "◌" : "◌"}</button>
           </div>
         </div>
       </article>
@@ -508,12 +509,6 @@ function renderHome() {
     });
   });
 
-  feed.querySelectorAll("[data-open-alerts]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.activeScreen = "alerts";
-      renderAll();
-    });
-  });
 }
 
 function renderMatches() {
@@ -566,7 +561,6 @@ function renderMatches() {
               </div>
             </div>
             <div>
-              <div class="confidence-mini">${escapeHtml(analysis?.primary ? pct01(analysis.primary.probability) : "—")}</div>
               <div class="match-row-time">${escapeHtml(fmtTime(match.startTime))}</div>
             </div>
           </div>
@@ -638,50 +632,6 @@ function renderAiScreen() {
   });
 }
 
-function renderAlerts() {
-  const featured = getFeaturedMatch();
-  const analysis = getAnalysis(featured);
-  const alerts = [
-    {
-      title: state.language === "ro" ? "Goal Probability Spike" : "Goal Probability Spike",
-      copy: featured && analysis
-        ? (state.language === "ro"
-          ? `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)} are ${analysis.hero?.expectedGoals?.toFixed(2) || "—"} goluri estimate.`
-          : `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)} projects ${analysis.hero?.expectedGoals?.toFixed(2) || "—"} goals.`)
-        : "Featured board signal.",
-      minute: "15′"
-    },
-    {
-      title: state.language === "ro" ? "Momentum Change" : "Momentum Change",
-      copy: state.language === "ro" ? "AIRO urmareste meciurile cu schimbare brusca de ritm." : "AIRO watches for aggressive shifts in match tempo.",
-      minute: "38′"
-    },
-    {
-      title: state.language === "ro" ? "Risk Alert" : "Risk Alert",
-      copy: state.language === "ro" ? "Meciurile cu semnal instabil sunt filtrate mai devreme." : "Low-conviction matches are flagged earlier and filtered faster.",
-      minute: "52′"
-    },
-    {
-      title: state.language === "ro" ? "Late Goal Probability" : "Late Goal Probability",
-      copy: state.language === "ro" ? "Activ pentru meciurile cu presiune ridicata dupa minutul 70." : "Enabled for matches with strong late pressure after minute 70.",
-      minute: "70′"
-    }
-  ];
-
-  el("alertsList").innerHTML = alerts.map((alert) => `
-    <article class="alert-card">
-      <div class="alert-row-top">
-        <div>
-          <div class="section-title">${escapeHtml(alert.title)}</div>
-          <div class="alert-meta">${escapeHtml(alert.minute)}</div>
-        </div>
-        <div class="alert-toggle" aria-hidden="true"></div>
-      </div>
-      <div class="alert-copy">${escapeHtml(alert.copy)}</div>
-    </article>
-  `).join("");
-}
-
 function renderProfile() {
   el("favoriteTeamsCount").textContent = String(state.favoriteFixtureIds.size || getTopMatches(4).length);
   el("reportsAccuracy").textContent = state.backtest?.hitRate != null ? `${state.backtest.hitRate}%` : "—";
@@ -696,14 +646,17 @@ function renderProfile() {
   const titleNodes = el("profileScreen").querySelectorAll(".section-title");
   if (titleNodes[0]) titleNodes[0].textContent = t("language");
   if (titleNodes[1]) titleNodes[1].textContent = t("savedMatches");
+  if (titleNodes[2]) titleNodes[2].textContent = t("appRefresh");
 
   const profileChips = el("profileScreen").querySelectorAll(".section-chip");
   if (profileChips[0]) profileChips[0].textContent = t("settings");
   if (profileChips[1]) profileChips[1].textContent = t("favorites");
+  if (profileChips[2]) profileChips[2].textContent = t("manual");
 
   const miniLabels = el("profileScreen").querySelectorAll(".profile-mini-card .section-kicker");
   if (miniLabels[0]) miniLabels[0].textContent = t("favorites");
   if (miniLabels[1]) miniLabels[1].textContent = t("reports");
+  el("profileRefreshBtn").textContent = t("refreshApp");
 
   const favoritesList = el("profileFavoritesList");
   const favoriteMatches = [...state.favoriteFixtureIds]
@@ -775,7 +728,7 @@ function buildOverviewMarkup(match, analysis) {
       </div>
       <div class="action-row" style="margin-top:14px;">
         <button class="cta-button" type="button" data-ask-ai-detail>${state.language === "ro" ? "Intreaba AI" : "Ask AI"}</button>
-        <button class="secondary-button" type="button" data-open-alerts-detail>${state.language === "ro" ? "Creeaza alerta" : "Create Alert"}</button>
+        <button class="secondary-button" type="button" data-open-stats-detail>${state.language === "ro" ? "Vezi stats" : "Full Stats"}</button>
       </div>
     </article>
   `;
@@ -918,10 +871,10 @@ function renderDetail() {
       renderAll();
     });
   });
-  el("detailOverviewTab").querySelectorAll("[data-open-alerts-detail]").forEach((button) => {
+  el("detailOverviewTab").querySelectorAll("[data-open-stats-detail]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.activeScreen = "alerts";
-      renderAll();
+      state.detailTab = "stats";
+      renderDetail();
     });
   });
 }
@@ -1023,7 +976,6 @@ function renderScreens() {
   el("homeScreen").hidden = state.activeScreen !== "home";
   el("matchesScreen").hidden = state.activeScreen !== "matches";
   el("aiScreen").hidden = state.activeScreen !== "ai";
-  el("alertsScreen").hidden = state.activeScreen !== "alerts";
   el("profileScreen").hidden = state.activeScreen !== "profile";
   el("detailScreen").hidden = state.activeScreen !== "detail";
   el("backFromDetailBtn").hidden = state.activeScreen !== "detail";
@@ -1040,7 +992,6 @@ function renderAll() {
   renderHome();
   renderMatches();
   renderAiScreen();
-  renderAlerts();
   renderProfile();
   renderDetail();
 }
@@ -1108,8 +1059,8 @@ function bindActions() {
   el("navAiBtn").addEventListener("click", () => { state.activeScreen = "ai"; renderAll(); });
   el("navProfileBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("backFromDetailBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
+  el("profileRefreshBtn").addEventListener("click", () => { window.location.reload(); });
   el("openMatchesFromHomeBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
-  el("openAlertsBtn").addEventListener("click", () => { state.activeScreen = "alerts"; renderAll(); });
   el("openFeaturedDetailBtn").addEventListener("click", () => { state.activeScreen = "detail"; renderAll(); });
   el("openAiFromHeroBtn").addEventListener("click", () => {
     const featured = getFeaturedMatch();
