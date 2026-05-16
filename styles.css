@@ -20,10 +20,7 @@ html,body{
   padding:0;
   height:100%;
   min-height:100%;
-  background:
-    radial-gradient(circle at top center, rgba(46,234,122,0.10), transparent 24%),
-    radial-gradient(circle at bottom center, rgba(0,217,255,0.08), transparent 18%),
-    linear-gradient(180deg, #05070A 0%, #09111A 100%);
+  background:#05070A;
   color:var(--text);
   font-family:"SF Pro Display","Inter","Segoe UI",system-ui,sans-serif;
 }
@@ -50,8 +47,8 @@ button{cursor:pointer}
   height:min(930px, calc(100dvh - 16px));
   max-height:min(930px, calc(100dvh - 16px));
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005)),
-    linear-gradient(180deg, #09111A 0%, #05070A 100%);
+    radial-gradient(circle at top right, rgba(46,234,122,0.05), transparent 28%),
+    linear-gradient(180deg, #09111A 0%, #05070A 58%);
   border:1px solid rgba(255,255,255,0.05);
   border-radius:34px;
   box-shadow:var(--shadow);
@@ -335,7 +332,7 @@ button{cursor:pointer}
 .hero-card{
   padding:18px;
   background:
-    radial-gradient(circle at top right, rgba(46,234,122,0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(46,234,122,0.12), transparent 30%),
     linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.006));
   background-color:var(--card);
   min-height:min(760px, calc(100dvh - 300px));
@@ -1162,7 +1159,7 @@ button{cursor:pointer}
   padding:12px 14px;
   border:1px solid rgba(255,255,255,0.06);
   border-radius:26px;
-  background:rgba(8,12,18,0.88);
+  background:rgba(7,10,15,0.92);
   backdrop-filter:blur(24px);
   box-shadow:0 24px 40px rgba(0,0,0,0.45);
 }
@@ -1315,25 +1312,61 @@ button{cursor:pointer}
     min-height:100dvh;
     border-radius:0;
     border:none;
-    padding-bottom:82px;
+    padding-bottom:0;
     background:#05070A;
   }
 
+  .screen-shell{
+    padding:0 16px 0;
+  }
+
+  .screen-view{
+    min-height:calc(100dvh - 120px - env(safe-area-inset-top));
+    padding-bottom:calc(116px + env(safe-area-inset-bottom));
+  }
+
   #homeScreen{
-    min-height:calc(100dvh - 176px);
+    display:flex;
+    flex-direction:column;
+    min-height:calc(100dvh - 178px - env(safe-area-inset-top));
+    padding-bottom:calc(104px + env(safe-area-inset-bottom));
+  }
+
+  #homeScreen .feed-section{
+    display:none;
   }
 
   .hero-card{
-    min-height:calc(100dvh - 268px);
+    min-height:auto;
+    flex:1 1 auto;
+    margin-bottom:0;
   }
 
-  .screen-shell{
-    padding-bottom:10px;
+  .screen-headline{
+    margin-bottom:2px;
   }
 
   .bottom-nav{
-    left:10px;
-    right:10px;
-    bottom:calc(0px + env(safe-area-inset-bottom));
+    left:0;
+    right:0;
+    bottom:0;
+    gap:8px;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-left:none;
+    border-right:none;
+    border-bottom:none;
+    border-radius:28px 28px 0 0;
+    background:rgba(7,10,15,0.96);
+    box-shadow:0 -8px 28px rgba(0,0,0,0.24);
+  }
+
+  .bottom-nav-item{
+    padding:12px 8px;
+    gap:8px;
+    font-size:11px;
+  }
+
+  .bottom-nav-icon{
+    font-size:20px;
   }
 }
