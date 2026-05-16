@@ -257,7 +257,7 @@ button{cursor:pointer}
   gap:12px;
 }
 .home-headline{
-  margin-bottom:4px;
+  margin-bottom:6px;
 }
 .headline-title{
   font-size:28px;
@@ -455,51 +455,52 @@ button{cursor:pointer}
 
 .airo-home-list{
   display:grid;
-  gap:12px;
+  gap:10px;
 }
 .home-match-card{
   width:100%;
   border:none;
   text-align:left;
   color:var(--text);
-  padding:18px 20px;
+  padding:16px 18px;
   border-radius:24px;
   background:#0b1420;
   border:1px solid rgba(255,255,255,0.05);
   box-shadow:0 14px 32px rgba(0,0,0,0.24);
   display:grid;
-  grid-template-columns:minmax(0,1fr) 1px 132px;
-  gap:16px;
-  min-height:136px;
+  grid-template-columns:minmax(0,1fr) 1px 116px 12px;
+  gap:14px;
+  min-height:132px;
 }
 .home-card-left{
   display:grid;
   grid-template-columns:auto minmax(0,1fr);
-  gap:12px;
+  gap:11px;
   align-items:center;
 }
 .home-logos-stack{
   display:grid;
-  gap:10px;
+  gap:8px;
   justify-items:center;
   align-content:center;
 }
 .home-logo{
-  width:40px;
-  height:40px;
+  width:38px;
+  height:38px;
   border-radius:50%;
-  font-size:11px;
+  font-size:10px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,0.08);
 }
 .home-match-copy{
   display:grid;
-  gap:4px;
+  gap:3px;
   min-width:0;
   align-content:center;
 }
 .home-team-name{
-  font-size:15px;
+  font-size:14px;
   font-weight:700;
-  line-height:1.2;
+  line-height:1.18;
 }
 .home-meta-row{
   color:var(--muted);
@@ -516,14 +517,14 @@ button{cursor:pointer}
 .home-card-right{
   display:grid;
   align-content:center;
-  gap:6px;
+  gap:5px;
   justify-items:start;
 }
 .home-prediction-label{
   color:var(--green);
   font-size:12px;
   font-weight:700;
-  line-height:1.25;
+  line-height:1.2;
 }
 .home-confidence-value{
   font-size:18px;
@@ -534,14 +535,16 @@ button{cursor:pointer}
   color:var(--muted);
   font-size:10px;
   letter-spacing:0.06em;
+  text-transform:uppercase;
 }
 .home-card-chevron,
 .match-card-chevron{
   color:#8f99a8;
-  font-size:20px;
+  font-size:26px;
   line-height:1;
   justify-self:end;
   align-self:center;
+  margin-right:-2px;
 }
 .confidence-bar{
   width:100%;
@@ -1813,15 +1816,15 @@ button{cursor:pointer}
   }
 
   .home-headline .headline-title{
-    font-size:34px;
-    line-height:1.12;
-    max-width:10ch;
+    font-size:30px;
+    line-height:1.08;
+    max-width:12ch;
   }
 
   .home-match-card{
-    grid-template-columns:minmax(0,1fr) 112px;
+    grid-template-columns:minmax(0,1fr) 1px 104px 12px;
     gap:12px;
-    min-height:132px;
+    min-height:130px;
   }
 
   .home-card-divider{

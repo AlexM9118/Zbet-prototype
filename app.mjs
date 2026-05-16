@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "42";
+const APP_VERSION = "43";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -488,11 +488,11 @@ function renderHome() {
         <div class="home-card-divider"></div>
         <div class="home-card-right">
           <div class="home-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
-          <div class="home-confidence-value">${escapeHtml(analysis?.primary ? pct01(analysis.primary.probability) : "—")}</div>
+          <div class="home-confidence-value">${escapeHtml(analysis?.primary ? `${Math.round(Number(analysis.primary.probability || 0) * 100)}%` : "—")}</div>
           <div class="home-confidence-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
           ${buildConfidenceBar(analysis?.primary?.probability)}
-          <span class="home-card-chevron" aria-hidden="true">›</span>
         </div>
+        <span class="home-card-chevron" aria-hidden="true">›</span>
       </button>
     `).join("")
     : renderStateCard(
