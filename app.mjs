@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "38";
+const APP_VERSION = "39";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -31,8 +31,8 @@ const COPY = {
     profile: "Profile",
     profileSubtitle: "Settings, reports and your intelligence layer.",
     account: "Account",
-    notifications: "Notifications",
     privacy: "Data & Privacy",
+    support: "Support",
     language: "Language",
     settings: "Settings",
     favorites: "Favorites",
@@ -80,8 +80,8 @@ const COPY = {
     profile: "Profil",
     profileSubtitle: "Setari, rapoarte si stratul tau de inteligenta.",
     account: "Cont",
-    notifications: "Notificari",
     privacy: "Date si confidentialitate",
+    support: "Suport",
     language: "Limba",
     settings: "Setari",
     favorites: "Favorite",
@@ -640,8 +640,8 @@ function renderProfile() {
 
   const settings = el("profileScreen").querySelectorAll(".settings-item span");
   if (settings[0]) settings[0].textContent = t("account");
-  if (settings[1]) settings[1].textContent = t("notifications");
-  if (settings[2]) settings[2].textContent = t("privacy");
+  if (settings[1]) settings[1].textContent = t("privacy");
+  if (settings[2]) settings[2].textContent = t("support");
 
   const titleNodes = el("profileScreen").querySelectorAll(".section-title");
   if (titleNodes[0]) titleNodes[0].textContent = t("language");

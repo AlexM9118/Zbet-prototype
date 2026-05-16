@@ -1,13 +1,13 @@
-const STATIC_CACHE = "airo-static-v38";
+const STATIC_CACHE = "airo-static-v39";
 const APP_SHELL = [
   "./",
-  "./index.html?v=38",
-  "./styles.css?v=38",
-  "./app.mjs?v=38",
-  "./manifest.webmanifest?v=38",
-  "./icons/airo-mark.svg?v=38",
-  "./icons/airo-touch-icon-180.png?v=38",
-  "./icons/airo-icon-512.png?v=38",
+  "./index.html?v=39",
+  "./styles.css?v=39",
+  "./app.mjs?v=39",
+  "./manifest.webmanifest?v=39",
+  "./icons/airo-mark.svg?v=39",
+  "./icons/airo-touch-icon-180.png?v=39",
+  "./icons/airo-icon-512.png?v=39",
   "./js/config.mjs",
   "./js/models.mjs",
   "./js/utils.mjs",
@@ -60,7 +60,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=38")))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=39")))
     );
     return;
   }

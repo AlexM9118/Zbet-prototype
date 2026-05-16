@@ -7,7 +7,7 @@ This file turns the final AIRO spec into an execution backlog for the MVP.
 ### Product shell
 - [x] AIRO branding in current PWA shell
 - [x] Dark cinematic palette applied
-- [x] Five-tab bottom navigation
+- [ ] Five-tab attached bottom navigation
 - [x] Safe-area aware top header
 - [ ] Floating glass tab bar matched 1:1 with final design
 
@@ -17,7 +17,6 @@ This file turns the final AIRO spec into an execution backlog for the MVP.
 - [x] Matches screen shell
 - [x] Match Analysis shell
 - [x] AI Chat shell
-- [x] Alerts shell
 - [x] Profile shell
 - [x] Favorites surfaced in Profile
 
@@ -56,11 +55,10 @@ This file turns the final AIRO spec into an execution backlog for the MVP.
 ### Product behavior
 - [ ] Favorites persisted in storage
 - [ ] Search for clubs and leagues polished
-- [ ] Alerts toggles state persisted
 - [ ] AI prompts contextual per selected match
 
 ### Partial screens
-- [ ] Live Momentum visual-only MVP screen
+- [ ] Legacy live and alerts references removed from current PWA
 - [ ] Advanced Stats visual-only MVP screen
 - [ ] Reports basic MVP screen
 - [ ] AIRO+ visual MVP screen
@@ -80,7 +78,6 @@ This file turns the final AIRO spec into an execution backlog for the MVP.
 - [ ] Matches module
 - [ ] Stats module
 - [ ] AI module
-- [ ] Alerts module
 - [ ] Reports module
 
 ### Infrastructure

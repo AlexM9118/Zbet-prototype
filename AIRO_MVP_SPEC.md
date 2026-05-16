@@ -103,8 +103,8 @@ This spec separates the product into three layers:
 Bottom navigation with 5 tabs:
 1. Home
 2. Matches
-3. AI
-4. Alerts
+3. Analysis
+4. AI Chat
 5. Profile
 
 Style requirements:
@@ -136,9 +136,8 @@ Purpose:
 - daily football intelligence dashboard
 
 Must include:
-- greeting header
+- editorial header
 - top AI insight card
-- momentum-style card
 - value/signal style cards
 - club crests
 - confidence %
@@ -153,14 +152,13 @@ Must include:
 - search
 - tabs:
   - Today
-  - Live
-  - AI Picks
-  - Upcoming
+  - Tomorrow
+  - Weekend
+  - Top Picks
 - fixture cards
 - club crests
 - time
 - confidence %
-- live status when available
 - favorite action
 
 #### Match Analysis
@@ -209,21 +207,6 @@ AI safety rule:
 - never invent statistics
 - every stat in a response must come from structured fetched context
 
-#### Alerts
-Purpose:
-- in-app smart alerts center
-
-Must include:
-- goal probability spike
-- momentum change
-- domination shift
-- red card risk
-- late goal probability
-
-MVP level:
-- in-app alert center first
-- optional push notifications later
-
 #### Profile
 Purpose:
 - account and preferences
@@ -231,7 +214,6 @@ Purpose:
 Must include:
 - avatar
 - account
-- notifications
 - preferences
 - timezone
 - privacy
@@ -262,7 +244,6 @@ Create backend abstraction around:
 - teams
 - standings
 - match statistics
-- live events
 - predictions context
 
 ### 5. Backend Modules
@@ -270,9 +251,7 @@ Create backend abstraction around:
 Must create:
 - `match.service.ts`
 - `stats.service.ts`
-- `momentum.service.ts`
 - `ai.service.ts`
-- `alerts.service.ts`
 - `reports.service.ts`
 
 ### 6. Database
@@ -283,7 +262,6 @@ Prisma models required for MVP:
 - matches
 - fixtures
 - predictions
-- alerts
 - favorites
 - ai_history
 
@@ -294,17 +272,11 @@ Optional in MVP but ready in schema:
 
 MVP realtime must be modest and reliable.
 
-Required:
-- websocket connection layer
-- live fixture refresh events
-- alert trigger events
+No live or realtime match layer in MVP.
 
-Allowed realtime events for MVP:
-- `live_update`
-- `momentum_change`
-- `goal_probability`
-
-Advanced realtime like true xG waves can be approximated later if data quality is weak.
+Allowed:
+- simple scheduled refresh
+- provider polling for upcoming matches only
 
 ### 8. Charts and Motion
 
@@ -316,21 +288,13 @@ Frontend libraries:
 Required motion:
 - fade transitions
 - loading skeletons
-- pulse states on live indicators
 - lightweight animated confidence rings
 
 ---
 
 ## Should Have
 
-### 1. Live Momentum Screen
-- animated momentum graph
-- xG style progression if supported by provider
-- possession swings
-- dangerous attacks
-- live event timeline
-
-### 2. Advanced Stats Screen
+### 1. Advanced Stats Screen
 - elegant charts only
 - no raw ugly tables
 - radar chart
@@ -340,7 +304,7 @@ Required motion:
 - corners
 - form and tactical comparisons
 
-### 3. Favorites Screen
+### 2. Favorites Screen
 - favorite clubs
 - favorite matches
 - saved AI picks
@@ -350,14 +314,14 @@ This can live either:
 - inside Profile
 - or as a drill-down from Home/Profile
 
-### 4. Reports Screen
+### 3. Reports Screen
 - daily report
 - weekly report
 - trend view
 - performance cards
 - AI summaries
 
-### 5. AIRO+
+### 4. AIRO+
 - no pricing
 - no subscription tables
 - no discount language
@@ -376,28 +340,18 @@ Must feel:
 
 ## Later
 
-### 1. Advanced Momentum Engine
-- richer live momentum visuals
-- better live event modeling
-- higher fidelity xG-like progression
-
-### 2. Tactical Layer
+### 1. Tactical Layer
 - lineups intelligence
 - matchup notes
 - pressing profile
 - transition threat
 
-### 3. Enhanced AIRO+
+### 2. Enhanced AIRO+
 - deeper reports
 - tactical summaries
 - richer AI explanations
 
-### 4. Push Notification System
-- mobile push alerts
-- user thresholds
-- notification priority logic
-
-### 5. Better Crest Strategy
+### 3. Better Crest Strategy
 - fully reliable official crest pipeline
 - normalized local cache for team crests
 
@@ -424,7 +378,6 @@ We still need to define:
 - primary provider
 - fallback provider
 - crest strategy
-- live stats strategy
 - lineup strategy
 
 ### 2. AI Provider
@@ -434,17 +387,10 @@ We still need to define:
 - token/cost boundaries
 - exact football context builder format
 
-### 3. Realtime Depth
-We still need to decide:
-- true websocket realtime
-- or polling + event synthesis
-- or hybrid approach
-
-### 4. MVP Boundary
+### 3. MVP Boundary
 We should confirm whether these are in MVP or wave 2:
 - Timeline tab
 - Lineups tab
-- Live Momentum dedicated screen
 - Reports screen
 - Favorites dedicated screen
 
@@ -468,7 +414,6 @@ We should confirm whether these are in MVP or wave 2:
 
 ### Phase 3
 - AI Chat
-- Alerts
 - Profile
 - language switching
 
@@ -476,7 +421,6 @@ We should confirm whether these are in MVP or wave 2:
 - backend data provider integration
 - caching
 - normalization
-- websocket baseline
 
 ### Phase 5
 - AIRO+ screen
@@ -490,7 +434,7 @@ We should confirm whether these are in MVP or wave 2:
 AIRO MVP is considered successful when:
 - it looks like a premium football intelligence app
 - it does not resemble a betting or spreadsheet product
-- Home, Matches, Match Analysis, AI, Alerts and Profile are all usable
+- Home, Matches, Match Analysis, AI Chat and Profile are all usable
 - data comes through a provider abstraction layer
 - no paid provider is required to run the MVP
 - app can run in a VPS-ready stack using Docker-based services

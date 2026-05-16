@@ -42,9 +42,8 @@ FULLY FUNCTIONAL IN MVP:
 3. Matches
 4. Match Analysis
 5. AI Chat
-6. Alerts
-7. Profile
-8. Favorites
+6. Profile
+7. Favorites
 
 PARTIAL / VISUAL ONLY:
 - Live Momentum
@@ -310,8 +309,7 @@ TABS:
 1. Home
 2. Matches
 3. AI
-4. Alerts
-5. Profile
+4. Profile
 
 ====================================================
 12. SAFE AREA RULES
@@ -383,7 +381,6 @@ BUTTONS:
 
 FEATURES:
 - Smart Insights
-- Live Momentum
 - Advanced Analytics
 - Tactical Intelligence
 
@@ -403,7 +400,6 @@ COMPONENTS:
 HOME HEADER:
 - avatar
 - greeting
-- notifications
 - search
 
 INSIGHT CARD:
@@ -433,7 +429,7 @@ TOP:
 
 TABS:
 - Today
-- Live
+- Tomorrow
 - AI Picks
 - Upcoming
 
@@ -444,10 +440,8 @@ HEIGHT:
 CONTENT:
 - official club logos
 - time
-- live badge
 - confidence %
 - favorite button
-- momentum line
 
 ====================================================
 17. MATCH ANALYSIS SCREEN
@@ -573,21 +567,7 @@ say:
 "Data unavailable."
 
 ====================================================
-21. ALERTS
-====================================================
-
-ALERT TYPES:
-- momentum shift
-- domination
-- goal probability
-- late goal risk
-- red card danger
-
-MVP:
-in-app alerts only.
-
-====================================================
-22. FAVORITES
+21. FAVORITES
 ====================================================
 
 FEATURES:
@@ -596,14 +576,14 @@ FEATURES:
 - saved AI picks
 
 ====================================================
-23. REPORTS
+22. REPORTS
 ====================================================
 
 MVP:
 basic reports only.
 
 ====================================================
-24. AIRO+
+23. AIRO+
 ====================================================
 
 NO pricing tables.
@@ -622,12 +602,11 @@ BUTTON:
 Unlock AIRO+
 
 ====================================================
-25. PROFILE
+24. PROFILE
 ====================================================
 
 FEATURES:
 - avatar
-- notifications
 - timezone
 - preferences
 - theme
@@ -657,7 +636,6 @@ TABLES:
 - fixtures
 - predictions
 - favorites
-- alerts
 - ai_history
 - reports
 
@@ -674,7 +652,7 @@ or
 30s
 
 Websocket architecture:
-skeleton only.
+not required in MVP.
 
 ====================================================
 29. BACKEND MODULES
@@ -685,7 +663,6 @@ Create:
 - matches.module.ts
 - stats.module.ts
 - ai.module.ts
-- alerts.module.ts
 - reports.module.ts
 
 ====================================================
