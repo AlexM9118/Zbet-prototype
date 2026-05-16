@@ -1815,7 +1815,7 @@ button{cursor:pointer}
   }
 
   .screen-shell{
-    padding:0 20px calc(72px + env(safe-area-inset-bottom));
+    padding:0 20px calc(64px + env(safe-area-inset-bottom));
   }
 
   .screen-view{
@@ -1835,8 +1835,8 @@ button{cursor:pointer}
   }
 
   .home-headline .headline-title{
-    font-size:26px;
-    line-height:1.08;
+    font-size:24px;
+    line-height:1.04;
     max-width:12ch;
   }
 
@@ -1866,13 +1866,13 @@ button{cursor:pointer}
 
   .bottom-nav{
     gap:0;
-    padding:8px 8px calc(4px + env(safe-area-inset-bottom));
+    padding:6px 8px calc(env(safe-area-inset-bottom) + 1px);
     border-radius:0;
   }
 
   .bottom-nav-item{
-    padding:4px 2px;
-    gap:6px;
+    padding:2px 2px;
+    gap:4px;
     font-size:11px;
   }
 
