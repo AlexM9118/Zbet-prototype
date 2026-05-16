@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "41";
+const APP_VERSION = "42";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -438,7 +438,6 @@ function renderShellCopy() {
   document.title = "AIRO";
   el("homeGreeting").textContent = t("greeting");
   el("matchesSubtitle").textContent = t("matchesSubtitle");
-  el("resetLeagueFilterBtn").textContent = t("reset");
   el("matchesSearchBtn").textContent = state.language === "ro" ? "Cauta" : "Search";
   el("matchesFilterBtn").textContent = state.language === "ro" ? "Filtre" : "Filters";
   el("matchesCalendarBtn").textContent = state.language === "ro" ? "Calendar" : "Calendar";
@@ -482,10 +481,8 @@ function renderHome() {
           <div class="home-match-copy">
             <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
             <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
-            <div class="home-meta-row">
-              <span>${escapeHtml(match.tournamentName)}</span>
-              <span>${escapeHtml(fmtTime(match.startTime))}</span>
-            </div>
+            <div class="home-meta-row">${escapeHtml(match.tournamentName)}</div>
+            <div class="home-kickoff-row">${escapeHtml(fmtTime(match.startTime))}</div>
           </div>
         </div>
         <div class="home-card-divider"></div>
@@ -494,6 +491,7 @@ function renderHome() {
           <div class="home-confidence-value">${escapeHtml(analysis?.primary ? pct01(analysis.primary.probability) : "—")}</div>
           <div class="home-confidence-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
           ${buildConfidenceBar(analysis?.primary?.probability)}
+          <span class="home-card-chevron" aria-hidden="true">›</span>
         </div>
       </button>
     `).join("")
@@ -536,14 +534,17 @@ function renderMatches() {
                 ${badgeMarkup(match.away, "match-logo")}
               </div>
               <div class="match-row-teams">
-                <div class="match-title">${escapeHtml(displayTeamName(match.home))} <span>vs</span> ${escapeHtml(displayTeamName(match.away))}</div>
-                <div class="match-meta">${escapeHtml(match.tournamentName)} • ${escapeHtml(fmtTime(match.startTime))}</div>
+                <div class="match-team-line">${escapeHtml(displayTeamName(match.home))}</div>
+                <div class="match-team-line">${escapeHtml(displayTeamName(match.away))}</div>
+                <div class="match-meta">${escapeHtml(match.tournamentName)}</div>
+                <div class="match-row-time">${escapeHtml(fmtTime(match.startTime))}</div>
               </div>
             </div>
             <div class="match-card-right">
               <div class="match-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
               <div class="match-confidence-value">${escapeHtml(confidence)}</div>
               ${buildConfidenceBar(analysis?.primary?.probability)}
+              <span class="match-card-chevron" aria-hidden="true">›</span>
             </div>
           </div>
         </button>
@@ -611,8 +612,6 @@ function renderAiScreen() {
 }
 
 function renderProfile() {
-  el("favoriteTeamsCount").textContent = String(state.favoriteFixtureIds.size || getTopMatches(4).length);
-  el("reportsAccuracy").textContent = state.backtest?.hitRate != null ? `${state.backtest.hitRate}%` : "—";
   el("langRoBtn").classList.toggle("is-active", state.language === "ro");
   el("langEnBtn").classList.toggle("is-active", state.language === "en");
 
@@ -622,18 +621,15 @@ function renderProfile() {
   if (settings[2]) settings[2].textContent = t("support");
 
   const titleNodes = el("profileScreen").querySelectorAll(".section-title");
-  if (titleNodes[0]) titleNodes[0].textContent = t("language");
-  if (titleNodes[1]) titleNodes[1].textContent = t("savedMatches");
-  if (titleNodes[2]) titleNodes[2].textContent = t("appRefresh");
+  if (titleNodes[0]) titleNodes[0].textContent = t("appRefresh");
+  if (titleNodes[1]) titleNodes[1].textContent = t("language");
+  if (titleNodes[2]) titleNodes[2].textContent = t("savedMatches");
 
   const profileChips = el("profileScreen").querySelectorAll(".section-chip");
-  if (profileChips[0]) profileChips[0].textContent = t("settings");
-  if (profileChips[1]) profileChips[1].textContent = t("favorites");
-  if (profileChips[2]) profileChips[2].textContent = t("manual");
+  if (profileChips[0]) profileChips[0].textContent = t("manual");
+  if (profileChips[1]) profileChips[1].textContent = t("settings");
+  if (profileChips[2]) profileChips[2].textContent = t("favorites");
 
-  const miniLabels = el("profileScreen").querySelectorAll(".profile-mini-card .section-kicker");
-  if (miniLabels[0]) miniLabels[0].textContent = t("favorites");
-  if (miniLabels[1]) miniLabels[1].textContent = t("reports");
   el("profileRefreshBtn").textContent = t("refreshApp");
 
   const favoritesList = el("profileFavoritesList");
@@ -687,12 +683,23 @@ function buildOverviewMarkup(match, analysis) {
 }
 
 function buildPredictionsMarkup(analysis) {
-  const rows = (analysis?.canonicalRows || []).slice(0, 5);
+  const sourceRows = analysis?.canonicalRows || [];
+  const preferredMatchers = [
+    /over 2\.5/i,
+    /\bbtts\b|both teams to score/i,
+    /home win|\b1\b/i,
+    /draw|\bx\b/i
+  ];
+  const rows = preferredMatchers
+    .map((pattern) => sourceRows.find((row) => pattern.test(String(row.label || ""))))
+    .filter(Boolean);
+  const fallbackRows = sourceRows.filter((row) => !rows.includes(row)).slice(0, Math.max(0, 4 - rows.length));
+  const finalRows = [...rows, ...fallbackRows].slice(0, 4);
   return `
     <article class="analysis-section-card">
       <div class="analysis-section-title">${state.language === "ro" ? "Predictii cheie" : "Key predictions"}</div>
       <div class="analysis-predictions-grid">
-        ${rows.map((row) => `
+        ${finalRows.map((row) => `
           <div class="prediction-tile">
             <div class="prediction-tile-title">${escapeHtml(row.label)}</div>
             <div class="prediction-tile-value">${escapeHtml(pct01(row.probability))}</div>
@@ -1023,7 +1030,6 @@ function bindActions() {
   el("navProfileBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("backFromDetailBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
   el("analysisBackBtn").addEventListener("click", () => { state.activeScreen = "home"; renderAll(); });
-  el("profileShortcutBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("profileRefreshBtn").addEventListener("click", () => { window.location.reload(); });
   
   const bindMatchFilterTabs = () => {
@@ -1035,11 +1041,6 @@ function bindActions() {
     });
   };
   bindMatchFilterTabs();
-
-  el("resetLeagueFilterBtn").addEventListener("click", () => {
-    state.selectedLeague = "";
-    renderMatches();
-  });
 
   el("matchesSearchBtn").addEventListener("click", () => {
     const drawer = el("searchDrawer");
