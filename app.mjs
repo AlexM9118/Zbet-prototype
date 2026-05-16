@@ -1,7 +1,8 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
+import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "43";
+const APP_VERSION = "44";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -175,6 +176,14 @@ function badgePalette(name) {
 }
 
 function badgeMarkup(name, className = "crest-mark") {
+  const logoUrl = getTeamLogo(name);
+  if (logoUrl) {
+    return `
+      <div class="${className} has-logo">
+        <img class="team-logo-image" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(displayTeamName(name))}" loading="lazy" />
+      </div>
+    `;
+  }
   const mono = monogramFor(name);
   const palette = badgePalette(name);
   const style = `--badge-primary:${palette.primary};--badge-secondary:${palette.secondary};--badge-border:${palette.border};`;
@@ -184,6 +193,14 @@ function badgeMarkup(name, className = "crest-mark") {
 function setBadgeVisual(id, name) {
   const node = el(id);
   if (!node) return;
+  const logoUrl = getTeamLogo(name);
+  node.classList.toggle("has-logo", Boolean(logoUrl));
+  if (logoUrl) {
+    node.textContent = "";
+    node.innerHTML = `<img class="team-logo-image" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(displayTeamName(name))}" loading="lazy" />`;
+    return;
+  }
+  node.innerHTML = "";
   const palette = badgePalette(name);
   node.textContent = monogramFor(name);
   node.style.setProperty("--badge-primary", palette.primary);

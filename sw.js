@@ -1,15 +1,16 @@
-const STATIC_CACHE = "airo-static-v43";
+const STATIC_CACHE = "airo-static-v44";
 const APP_SHELL = [
   "./",
-  "./index.html?v=43",
-  "./styles.css?v=43",
-  "./app.mjs?v=43",
-  "./manifest.webmanifest?v=43",
-  "./icons/airo-mark.svg?v=43",
-  "./icons/airo-touch-icon-180.png?v=43",
-  "./icons/airo-icon-512.png?v=43",
+  "./index.html?v=44",
+  "./styles.css?v=44",
+  "./app.mjs?v=44",
+  "./manifest.webmanifest?v=44",
+  "./icons/airo-mark.svg?v=44",
+  "./icons/airo-touch-icon-180.png?v=44",
+  "./icons/airo-icon-512.png?v=44",
   "./js/config.mjs",
   "./js/models.mjs",
+  "./js/team-logos.mjs",
   "./js/utils.mjs",
   "./js/zbet-engine.mjs",
   "./data/ui/leagues.json",
@@ -60,7 +61,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(STATIC_CACHE).then((cache) => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=43")))
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html?v=44")))
     );
     return;
   }
