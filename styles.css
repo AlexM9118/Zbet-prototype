@@ -121,6 +121,22 @@ button{cursor:pointer}
   place-items:center;
   border:1px solid rgba(255,255,255,0.05);
 }
+.alerts-button{
+  position:relative;
+  background:rgba(46,234,122,0.06);
+  border-color:rgba(46,234,122,0.12);
+}
+.alerts-button::after{
+  content:"";
+  position:absolute;
+  top:8px;
+  right:8px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 10px rgba(46,234,122,0.45);
+}
 .back-button{
   width:34px;
   height:34px;
@@ -154,8 +170,8 @@ button{cursor:pointer}
 }
 .bell-icon{
   position:relative;
-  width:16px;
-  height:12px;
+  width:14px;
+  height:11px;
   border:1.8px solid #eef3f8;
   border-bottom:none;
   border-top-left-radius:8px;
@@ -165,10 +181,10 @@ button{cursor:pointer}
 .bell-icon::before{
   content:"";
   position:absolute;
-  left:0;
-  right:0;
-  bottom:-4px;
-  height:6px;
+  left:-2px;
+  right:-2px;
+  bottom:-3px;
+  height:5px;
   border:1.8px solid #eef3f8;
   border-top:none;
   border-bottom-left-radius:8px;
@@ -178,9 +194,9 @@ button{cursor:pointer}
   content:"";
   position:absolute;
   left:50%;
-  bottom:-8px;
-  width:4px;
-  height:4px;
+  bottom:-7px;
+  width:3px;
+  height:3px;
   border-radius:50%;
   background:#eef3f8;
   transform:translateX(-50%);
@@ -1131,7 +1147,7 @@ button{cursor:pointer}
   position:absolute;
   left:14px;
   right:14px;
-  bottom:calc(12px + env(safe-area-inset-bottom));
+  bottom:calc(6px + env(safe-area-inset-bottom));
   z-index:20;
   display:grid;
   grid-template-columns:repeat(4, minmax(0,1fr));
@@ -1292,13 +1308,13 @@ button{cursor:pointer}
     min-height:100dvh;
     border-radius:0;
     border:none;
-    padding-bottom:118px;
+    padding-bottom:96px;
     background:#05070A;
   }
 
   .bottom-nav{
     left:10px;
     right:10px;
-    bottom:calc(8px + env(safe-area-inset-bottom));
+    bottom:calc(2px + env(safe-area-inset-bottom));
   }
 }
