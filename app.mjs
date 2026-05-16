@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "39";
+const APP_VERSION = "40";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -9,21 +9,21 @@ const ADMIN_MODE_CODE = "18111991";
 
 const COPY = {
   en: {
-    greeting: "Football Feed",
+    greeting: "Here are today’s top AI match insights",
     homeSubtitle: "",
-    exploreAll: "Explore all",
-    topInsight: "Top AI Insight",
+    exploreAll: "See all",
+    topInsight: "Top AI match insights",
     viewAnalysis: "View Analysis",
     askKyro: "Ask AIRO",
-    topInsights: "Top AI insights",
+    topInsights: "Top AI match insights",
     latest: "Latest",
     matches: "Matches",
     matchesSubtitle: "Intelligent match explorer.",
     reset: "Reset",
     filterToday: "Today",
-    filterLive: "Live",
-    filterUpcoming: "Upcoming",
-    filterAi: "AI Picks",
+    filterTomorrow: "Tomorrow",
+    filterWeekend: "Weekend",
+    filterAi: "Top Picks",
     aiTitle: "AIRO AI",
     aiSubtitle: "Ask sharper questions. Read the match deeper.",
     online: "Online",
@@ -44,8 +44,10 @@ const COPY = {
     unlockKyroPlus: "Unlock AIRO+",
     kyroPlusSubtext: "Advanced football analysis powered by AIRO.",
     detailOverview: "Overview",
+    detailPredictions: "Predictions",
+    detailForm: "Team Form",
+    detailH2H: "H2H",
     detailStats: "Stats",
-    detailTimeline: "Timeline",
     modelPulse: "Recent model pulse",
     signalRate: "AIRO signal rate",
     noData: "Data unavailable.",
@@ -58,10 +60,10 @@ const COPY = {
     reloadAction: "Reload"
   },
   ro: {
-    greeting: "Flux fotbal",
+    greeting: "Iata insight-urile AI principale pentru meciurile de azi",
     homeSubtitle: "",
     exploreAll: "Vezi tot",
-    topInsight: "Insight AI principal",
+    topInsight: "Insight-uri AI principale",
     viewAnalysis: "Vezi analiza",
     askKyro: "Intreaba AIRO",
     topInsights: "Top insight-uri AI",
@@ -70,9 +72,9 @@ const COPY = {
     matchesSubtitle: "Explorator inteligent de meciuri.",
     reset: "Reset",
     filterToday: "Azi",
-    filterLive: "Live",
-    filterUpcoming: "Viitoare",
-    filterAi: "Picks AI",
+    filterTomorrow: "Maine",
+    filterWeekend: "Weekend",
+    filterAi: "Top Picks",
     aiTitle: "AIRO AI",
     aiSubtitle: "Pune intrebari mai bune. Citeste meciul mai profund.",
     online: "Online",
@@ -93,8 +95,10 @@ const COPY = {
     unlockKyroPlus: "Deblocheaza AIRO+",
     kyroPlusSubtext: "Analiza avansata de fotbal, sustinuta de AIRO.",
     detailOverview: "Prezentare",
+    detailPredictions: "Predictii",
+    detailForm: "Forma",
+    detailH2H: "H2H",
     detailStats: "Statistici",
-    detailTimeline: "Timeline",
     modelPulse: "Puls model recent",
     signalRate: "Rata de semnal AIRO",
     noData: "Date indisponibile.",
@@ -319,6 +323,16 @@ function buildPseudoScore(analysis) {
   return /^\d+\-\d+$/.test(label) ? label.replace("-", " - ") : "2 - 1";
 }
 
+function buildConfidenceBar(probability, className = "") {
+  const pct = Math.max(0, Math.min(100, Math.round(Number(probability || 0) * 100)));
+  return `
+    <div class="confidence-bar ${className}">
+      <span class="confidence-bar-fill" style="width:${pct}%"></span>
+      <span class="confidence-bar-rest" style="width:${Math.max(0, 100 - pct)}%"></span>
+    </div>
+  `;
+}
+
 function getTopMatches(limit = 6) {
   return state.matches
     .filter((match) => String(match.day || "") === state.latestAvailableDay)
@@ -328,12 +342,24 @@ function getTopMatches(limit = 6) {
     .slice(0, limit);
 }
 
+function getOrderedMatchDays() {
+  return [...new Set((state.matches || []).map((match) => String(match.day || "")).filter(Boolean))]
+    .sort((left, right) => toDayStamp(left) - toDayStamp(right));
+}
+
 function getVisibleMatches() {
   let matches = [...state.matches];
   if (state.matchFilter === "latest" && state.latestAvailableDay) {
     matches = matches.filter((match) => String(match.day || "") === state.latestAvailableDay);
-  } else if (state.matchFilter === "live" && state.latestAvailableDay) {
-    matches = matches.filter((match) => String(match.day || "") === state.latestAvailableDay).slice(0, 8);
+  } else if (state.matchFilter === "tomorrow") {
+    const ordered = getOrderedMatchDays();
+    const latestIndex = ordered.indexOf(state.latestAvailableDay);
+    const target = ordered[latestIndex + 1] || ordered[1] || "";
+    matches = matches.filter((match) => String(match.day || "") === target);
+  } else if (state.matchFilter === "weekend") {
+    const ordered = getOrderedMatchDays();
+    const targets = new Set(ordered.slice(0, 4));
+    matches = matches.filter((match) => targets.has(String(match.day || "")));
   } else if (state.matchFilter === "featured") {
     matches = getTopMatches(16).map((item) => item.match);
   }
@@ -399,8 +425,6 @@ function renderSearchResults() {
 function renderShellCopy() {
   document.title = "AIRO";
   el("homeGreeting").textContent = t("greeting");
-  el("openMatchesFromHomeBtn").textContent = t("exploreAll");
-  el("feedDateChip").textContent = t("latest");
   el("matchesSubtitle").textContent = t("matchesSubtitle");
   el("resetLeagueFilterBtn").textContent = t("reset");
   el("matchesSearchBtn").textContent = state.language === "ro" ? "Cauta" : "Search";
@@ -408,7 +432,8 @@ function renderShellCopy() {
   el("matchesCalendarBtn").textContent = state.language === "ro" ? "Calendar" : "Calendar";
   el("navHomeBtn").lastElementChild.textContent = "Home";
   el("navMatchesBtn").lastElementChild.textContent = t("matches");
-  el("navAiBtn").lastElementChild.textContent = "AI";
+  el("navAnalysisBtn").lastElementChild.textContent = state.language === "ro" ? "Analiza" : "Analysis";
+  el("navAiBtn").lastElementChild.textContent = state.language === "ro" ? "AI Chat" : "AI Chat";
   el("navProfileBtn").lastElementChild.textContent = t("profile");
   el("applyUpdateBtn").textContent = t("reloadAction");
   el("updateBanner").querySelector(".update-banner-title").textContent = t("reloadTitle");
@@ -427,69 +452,43 @@ function renderStateCard(title, copy) {
 }
 
 function renderHome() {
-  const featured = getFeaturedMatch();
-  const analysis = getAnalysis(featured);
-  const topMatches = getTopMatches(4);
+  const topMatches = getTopMatches(5);
   el("homeGreeting").textContent = t("greeting");
   el("homeSubtitle").textContent = state.latestAvailableDay
-    ? fmtDayLong(state.latestAvailableDay)
+    ? `${state.language === "ro" ? "ASTAZI" : "TODAY"} • ${fmtDayLong(state.latestAvailableDay).toUpperCase()}`
     : getSnapshotNotice();
 
-  if (!featured || !analysis) {
-    el("heroMatchTitle").textContent = state.language === "ro" ? "Nu exista un meci principal in snapshot" : "No featured match in the snapshot";
-    el("heroMatchMeta").textContent = getSnapshotNotice();
-    el("heroInsight").textContent = t("noData");
-    el("heroConfidence").textContent = "—";
-    el("heroPrimaryPick").textContent = "—";
-    el("heroSecondaryPick").textContent = "—";
-    el("heroMomentum").textContent = "—";
-    return;
-  }
-
-  el("heroMatchTitle").textContent = `${displayTeamName(featured.home)} vs ${displayTeamName(featured.away)}`;
-  el("heroMatchMeta").textContent = `${featured.tournamentName} • ${fmtDayLong(featured.day)} • ${fmtTime(featured.startTime)}`;
-  el("heroInsight").textContent = buildInsightSentence(featured, analysis);
-  el("heroConfidence").textContent = analysis.primary ? pct01(analysis.primary.probability) : "—";
-  el("heroPrimaryPick").textContent = analysis.primary?.label || "—";
-  el("heroSecondaryPick").textContent = analysis.secondary?.label || "—";
-  el("heroMomentum").textContent = analysis.hero?.pulseDelta != null ? `${analysis.hero.pulseDelta > 0 ? "+" : ""}${analysis.hero.pulseDelta.toFixed(1)}` : "—";
-  setBadgeVisual("heroHomeBadge", featured.home);
-  setBadgeVisual("heroAwayBadge", featured.away);
-  el("heroHomeName").textContent = displayTeamName(featured.home);
-  el("heroAwayName").textContent = displayTeamName(featured.away);
-
   const feed = el("homeFeedList");
-  feed.className = "feed-list snap-feed";
-  const types = ["signal", "momentum", "value", "signal"];
-  const labels = {
-    signal: state.language === "ro" ? "Strong Signal" : "Strong Signal",
-    momentum: state.language === "ro" ? "Momentum Pick" : "Momentum Pick",
-    value: state.language === "ro" ? "Value Detected" : "Value Detected"
-  };
-
-  feed.innerHTML = topMatches.map(({ match, analysis: cardAnalysis }, index) => {
-    const type = types[index] || "signal";
-    const excerpt = buildInsightSentence(match, cardAnalysis);
-    return `
-      <article class="feed-card">
-        <div class="feed-card-top">
-          <div>
-            <div class="signal-tag${type === "momentum" ? " warn" : type === "value" ? " value" : ""}">${escapeHtml(labels[type])}</div>
-            <h3>${escapeHtml(displayTeamName(match.home))} vs ${escapeHtml(displayTeamName(match.away))}</h3>
-            <div class="feed-meta">${escapeHtml(match.tournamentName)} • ${escapeHtml(fmtTime(match.startTime))}</div>
+  feed.innerHTML = topMatches.length
+    ? topMatches.map(({ match, analysis }) => `
+      <button class="home-match-card" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">
+        <div class="home-card-left">
+          <div class="home-logos-stack">
+            ${badgeMarkup(match.home, "home-logo")}
+            ${badgeMarkup(match.away, "home-logo away")}
           </div>
-          <div class="confidence-mini">${escapeHtml(cardAnalysis?.primary ? pct01(cardAnalysis.primary.probability) : "—")}</div>
-        </div>
-        <div class="feed-excerpt">${escapeHtml(excerpt)}</div>
-        <div class="feed-bottom">
-          <button class="cta-button" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">${escapeHtml(t("viewAnalysis"))}</button>
-          <div class="feed-actions">
-            <button class="icon-button small-icon" type="button" data-toggle-favorite="${escapeHtml(String(match.fixtureId))}">${state.favoriteFixtureIds.has(String(match.fixtureId)) ? "★" : "☆"}</button>
+          <div class="home-match-copy">
+            <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
+            <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
+            <div class="home-meta-row">
+              <span>${escapeHtml(match.tournamentName)}</span>
+              <span>${escapeHtml(fmtTime(match.startTime))}</span>
+            </div>
           </div>
         </div>
-      </article>
-    `;
-  }).join("");
+        <div class="home-card-divider"></div>
+        <div class="home-card-right">
+          <div class="home-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
+          <div class="home-confidence-value">${escapeHtml(analysis?.primary ? pct01(analysis.primary.probability) : "—")}</div>
+          <div class="home-confidence-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
+          ${buildConfidenceBar(analysis?.primary?.probability)}
+        </div>
+      </button>
+    `).join("")
+    : renderStateCard(
+      state.language === "ro" ? "Nu exista meciuri curate pentru cardurile AIRO." : "There are no clean matches for the AIRO cards.",
+      getSnapshotNotice()
+    );
 
   feed.querySelectorAll("[data-open-analysis]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -498,17 +497,6 @@ function renderHome() {
       renderAll();
     });
   });
-
-  feed.querySelectorAll("[data-toggle-favorite]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const id = button.getAttribute("data-toggle-favorite") || "";
-      if (state.favoriteFixtureIds.has(id)) state.favoriteFixtureIds.delete(id);
-      else state.favoriteFixtureIds.add(id);
-      renderHome();
-      renderProfile();
-    });
-  });
-
 }
 
 function renderMatches() {
@@ -516,25 +504,9 @@ function renderMatches() {
   document.querySelectorAll("[data-filter]").forEach((button) => {
     button.classList.toggle("is-active", button.getAttribute("data-filter") === state.matchFilter);
     if (button.getAttribute("data-filter") === "latest") button.textContent = t("filterToday");
-    if (button.getAttribute("data-filter") === "live") button.textContent = t("filterLive");
-    if (button.getAttribute("data-filter") === "all") button.textContent = t("filterUpcoming");
+    if (button.getAttribute("data-filter") === "tomorrow") button.textContent = t("filterTomorrow");
+    if (button.getAttribute("data-filter") === "weekend") button.textContent = t("filterWeekend");
     if (button.getAttribute("data-filter") === "featured") button.textContent = t("filterAi");
-  });
-
-  const leagueCatalog = getLeagueCatalog();
-  const chipRow = el("leagueChipRow");
-  chipRow.innerHTML = `
-    <button class="chip${state.selectedLeague ? "" : " is-active"}" type="button" data-chip-league="">${state.language === "ro" ? "Toate ligile" : "All leagues"}</button>
-    ${leagueCatalog.slice(0, 10).map((league) => `
-      <button class="chip${state.selectedLeague === league.id ? " is-active" : ""}" type="button" data-chip-league="${escapeHtml(league.id)}">${escapeHtml(league.tournamentName)}</button>
-    `).join("")}
-  `;
-
-  chipRow.querySelectorAll("[data-chip-league]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.selectedLeague = button.getAttribute("data-chip-league") || "";
-      renderMatches();
-    });
   });
 
   const items = getVisibleMatches();
@@ -542,31 +514,25 @@ function renderMatches() {
   list.innerHTML = items.length
     ? items.map((match) => {
       const analysis = getAnalysis(match);
-      const primary = analysis?.primary?.label || "No signal";
-      const tags = [
-        primary,
-        analysis?.secondary?.label || "Plan B pending",
-        analysis?.metrics?.corners?.lt ? `Corners ${analysis.metrics.corners.lt.toFixed(1)}` : null
-      ].filter(Boolean).slice(0, 3);
-      const homeBadge = badgeMarkup(match.home, "mini-crest");
-      const awayBadge = badgeMarkup(match.away, "mini-crest");
+      const confidence = analysis?.primary ? pct01(analysis.primary.probability) : "—";
       return `
         <button class="match-card" type="button" data-open-match="${escapeHtml(String(match.fixtureId))}">
-          <div class="match-row-top">
-            <div class="match-row-title">
-              ${homeBadge}
+          <div class="match-card-main">
+            <div class="match-card-left">
+              <div class="match-logos-pair">
+                ${badgeMarkup(match.home, "match-logo")}
+                ${badgeMarkup(match.away, "match-logo")}
+              </div>
               <div class="match-row-teams">
-                <div class="match-title">${escapeHtml(displayTeamName(match.home))}</div>
-                <div class="match-meta">${escapeHtml(displayTeamName(match.away))}</div>
+                <div class="match-title">${escapeHtml(displayTeamName(match.home))} <span>vs</span> ${escapeHtml(displayTeamName(match.away))}</div>
+                <div class="match-meta">${escapeHtml(match.tournamentName)} • ${escapeHtml(fmtTime(match.startTime))}</div>
               </div>
             </div>
-            <div>
-              <div class="match-row-time">${escapeHtml(fmtTime(match.startTime))}</div>
+            <div class="match-card-right">
+              <div class="match-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
+              <div class="match-confidence-value">${escapeHtml(confidence)}</div>
+              ${buildConfidenceBar(analysis?.primary?.probability)}
             </div>
-          </div>
-          <div class="match-meta">${escapeHtml(match.tournamentName)} • ${escapeHtml(match.categoryName)}</div>
-          <div class="match-tags">
-            ${tags.map((tag) => `<span class="match-tag">${escapeHtml(tag)}</span>`).join("")}
           </div>
         </button>
       `;
@@ -692,66 +658,35 @@ function renderProfile() {
 }
 
 function buildOverviewMarkup(match, analysis) {
-  const oneXtwo = analysis?.marketGroups?.find((group) => group.title === "FT 1X2")?.rows || [];
-  const home = oneXtwo.find((row) => row.label === "Victorie gazde");
-  const draw = oneXtwo.find((row) => row.label === "Egal");
-  const away = oneXtwo.find((row) => row.label === "Victorie oaspeti");
   const primary = analysis?.primary;
-  const smartRows = analysis?.canonicalRows?.slice(0, 4) || [];
-  const signalWidth = primary ? Math.max(14, Math.round(primary.probability * 100)) : 14;
-
   return `
-    <article class="overview-card">
-      <div class="section-kicker">AI Win Probability</div>
-      <div class="probability-grid">
-        <div class="probability-item"><strong>${escapeHtml(home ? pct01(home.probability) : "—")}</strong><span>${escapeHtml(displayTeamName(match.home))}</span></div>
-        <div class="probability-item"><strong>${escapeHtml(draw ? pct01(draw.probability) : "—")}</strong><span>${state.language === "ro" ? "Egal" : "Draw"}</span></div>
-        <div class="probability-item"><strong>${escapeHtml(away ? pct01(away.probability) : "—")}</strong><span>${escapeHtml(displayTeamName(match.away))}</span></div>
+    <article class="analysis-verdict-card">
+      <div class="analysis-verdict-header">
+        <div>
+          <div class="section-kicker">AI Verdict</div>
+          <h3>${escapeHtml(primary?.label || "No signal")}</h3>
+          <div class="analysis-confidence-line">${escapeHtml(primary ? `${pct01(primary.probability)} ${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}` : "—")}</div>
+        </div>
+        <div class="analysis-big-confidence">${escapeHtml(primary ? pct01(primary.probability) : "—")}</div>
       </div>
-      <div class="signal-meter"><span style="width:${signalWidth}%"></span></div>
-    </article>
-
-    <article class="detail-panel-card">
-      <div class="section-kicker">AI Insight</div>
-      <div class="insight-copy">${escapeHtml(buildInsightSentence(match, analysis))}</div>
-    </article>
-
-    <article class="overview-card">
-      <div class="section-kicker">Smart Predictions</div>
-      <div class="smart-picks-grid">
-        ${smartRows.map((row) => `
-          <div class="smart-pick-card">
-            <span>${escapeHtml(row.label)}</span>
-            <strong>${escapeHtml(pct01(row.probability))}</strong>
-          </div>
-        `).join("")}
-      </div>
-      <div class="action-row" style="margin-top:14px;">
-        <button class="cta-button" type="button" data-ask-ai-detail>${state.language === "ro" ? "Intreaba AI" : "Ask AI"}</button>
-        <button class="secondary-button" type="button" data-open-stats-detail>${state.language === "ro" ? "Vezi stats" : "Full Stats"}</button>
-      </div>
+      ${buildConfidenceBar(primary?.probability, "analysis-confidence-bar")}
+      <p class="analysis-summary-copy">${escapeHtml(buildInsightSentence(match, analysis))}</p>
     </article>
   `;
 }
 
-function buildStatsMarkup(analysis) {
-  const rows = [
-    { label: "Goals", value: analysis?.hero?.expectedGoals || 0, max: 5 },
-    { label: "Corners", value: analysis?.hero?.expectedCorners || 0, max: 15 },
-    { label: "Cards", value: analysis?.hero?.expectedCards || 0, max: 8 },
-    { label: "BTTS", value: (analysis?.metrics?.bttsFt || 0) * 100, max: 100 }
-  ];
-
+function buildPredictionsMarkup(analysis) {
+  const rows = (analysis?.canonicalRows || []).slice(0, 5);
   return `
-    <article class="stats-card">
-      <div class="stats-grid">
+    <article class="analysis-section-card">
+      <div class="analysis-section-title">${state.language === "ro" ? "Predictii cheie" : "Key predictions"}</div>
+      <div class="analysis-predictions-grid">
         ${rows.map((row) => `
-          <div class="stat-row">
-            <div class="stat-row-head">
-              <span>${escapeHtml(row.label)}</span>
-              <strong>${escapeHtml(row.label === "BTTS" ? `${Math.round(row.value)}%` : row.value.toFixed(2))}</strong>
-            </div>
-            <div class="stat-bar"><span style="width:${Math.max(8, Math.min(100, (row.value / row.max) * 100))}%"></span></div>
+          <div class="prediction-tile">
+            <div class="prediction-tile-title">${escapeHtml(row.label)}</div>
+            <div class="prediction-tile-value">${escapeHtml(pct01(row.probability))}</div>
+            <div class="prediction-tile-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
+            ${buildConfidenceBar(row.probability)}
           </div>
         `).join("")}
       </div>
@@ -759,37 +694,57 @@ function buildStatsMarkup(analysis) {
   `;
 }
 
-function buildTimelineMarkup(match, analysis) {
-  const events = [
-    {
-      stamp: fmtDayLong(match.day),
-      title: state.language === "ro" ? "Meci programat" : "Fixture scheduled",
-      copy: `${displayTeamName(match.home)} vs ${displayTeamName(match.away)} • ${fmtTime(match.startTime)}`
-    },
-    {
-      stamp: state.matchesGeneratedAt ? new Date(state.matchesGeneratedAt).toLocaleTimeString(state.language === "ro" ? "ro-RO" : "en-US", { hour: "2-digit", minute: "2-digit" }) : "—",
-      title: state.language === "ro" ? "Snapshot AIRO" : "AIRO snapshot",
-      copy: getSnapshotNotice()
-    },
-    {
-      stamp: analysis?.primary ? pct01(analysis.primary.probability) : "—",
-      title: state.language === "ro" ? "Semnal principal blocat" : "Primary signal locked",
-      copy: analysis?.primary?.label || t("noData")
-    }
-  ];
-
+function buildFormMarkup(match, historyEntry) {
+  const home = historyEntry?.homeStats;
+  const away = historyEntry?.awayStats;
+  const homeForm = String(home?.recentFormHome || "WWDWL").split("");
+  const awayForm = String(away?.recentFormAway || "WDWLL").split("");
+  const chipClass = (result) => result === "W" ? "win" : result === "D" ? "draw" : "loss";
   return `
-    <article class="detail-panel-card">
-      <div class="section-kicker">Timeline</div>
-      <div class="timeline-stack">
-        ${events.map((event) => `
-          <div class="timeline-row">
-            <div class="timeline-dot"></div>
-            <div class="timeline-copy">
-              <div class="timeline-stamp">${escapeHtml(event.stamp)}</div>
-              <div class="timeline-title">${escapeHtml(event.title)}</div>
-              <div class="timeline-text">${escapeHtml(event.copy)}</div>
-            </div>
+    <article class="analysis-section-card">
+      <div class="analysis-section-title">${state.language === "ro" ? "Forma echipelor (ultimele 5)" : "Team form (last 5 matches)"}</div>
+      <div class="team-form-grid">
+        <div class="team-form-block">
+          <div class="team-form-head">
+            ${badgeMarkup(match.home, "mini-crest")}
+            <span>${escapeHtml(displayTeamName(match.home))}</span>
+          </div>
+          <div class="compare-form-strip">${homeForm.map((item) => `<span class="form-chip ${chipClass(item)}">${escapeHtml(item)}</span>`).join("")}</div>
+          <div class="team-form-stats">
+            <div><strong>${escapeHtml(home?.homeGF?.toFixed(1) || "—")}</strong><span>${state.language === "ro" ? "Medie goluri marcate" : "Avg. goals scored"}</span></div>
+            <div><strong>${escapeHtml(home?.homeGA?.toFixed(1) || "—")}</strong><span>${state.language === "ro" ? "Medie goluri primite" : "Avg. goals conceded"}</span></div>
+          </div>
+        </div>
+        <div class="team-form-block">
+          <div class="team-form-head">
+            ${badgeMarkup(match.away, "mini-crest")}
+            <span>${escapeHtml(displayTeamName(match.away))}</span>
+          </div>
+          <div class="compare-form-strip">${awayForm.map((item) => `<span class="form-chip ${chipClass(item)}">${escapeHtml(item)}</span>`).join("")}</div>
+          <div class="team-form-stats">
+            <div><strong>${escapeHtml(away?.awayGF?.toFixed(1) || "—")}</strong><span>${state.language === "ro" ? "Medie goluri marcate" : "Avg. goals scored"}</span></div>
+            <div><strong>${escapeHtml(away?.awayGA?.toFixed(1) || "—")}</strong><span>${state.language === "ro" ? "Medie goluri primite" : "Avg. goals conceded"}</span></div>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function buildH2HMarkup(match, analysis) {
+  const rows = [
+    { label: "Over 2.5 Goals", value: `${Math.round((analysis?.metrics?.over25Ft || 0) * 100)}%` },
+    { label: "BTTS", value: `${Math.round((analysis?.metrics?.bttsFt || 0) * 100)}%` },
+    { label: state.language === "ro" ? "Medie goluri" : "Avg. goals", value: analysis?.hero?.expectedGoals?.toFixed(1) || "—" }
+  ];
+  return `
+    <article class="analysis-section-card">
+      <div class="analysis-section-title">${state.language === "ro" ? "Head to head (ultimele 5)" : "Head to head (last 5 meetings)"}</div>
+      <div class="h2h-grid">
+        ${rows.map((row) => `
+          <div class="h2h-stat">
+            <strong>${escapeHtml(row.value)}</strong>
+            <span>${escapeHtml(row.label)}</span>
           </div>
         `).join("")}
       </div>
@@ -808,20 +763,9 @@ function buildStatsMarkupWithComparison(match, analysis, historyEntry) {
   ];
 
   return `
-    ${buildStatsMarkup(analysis)}
-    <article class="compare-card">
-      <div class="compare-header">
-        <div class="score-team">
-          ${badgeMarkup(match.home)}
-          <span>${escapeHtml(displayTeamName(match.home))}</span>
-        </div>
-        <div class="section-chip">VS</div>
-        <div class="score-team">
-          ${badgeMarkup(match.away)}
-          <span>${escapeHtml(displayTeamName(match.away))}</span>
-        </div>
-      </div>
-      <div class="compare-table" style="margin-top:16px;">
+    <article class="analysis-section-card">
+      <div class="analysis-section-title">${state.language === "ro" ? "Statistici avansate" : "Advanced stats"}</div>
+      <div class="compare-table">
         ${rows.map((row) => `
           <div class="compare-row">
             <strong>${escapeHtml(String(row.home))}</strong>
@@ -837,12 +781,16 @@ function buildStatsMarkupWithComparison(match, analysis, historyEntry) {
 function renderDetail() {
   const match = findMatchByFixtureId(state.selectedFixtureId) || getFeaturedMatch();
   if (!match) return;
+  if (!["overview", "predictions", "form", "h2h", "stats"].includes(state.detailTab)) {
+    state.detailTab = "overview";
+  }
   const analysis = getAnalysis(match);
   const historyEntry = getHistEntry(match.fixtureId);
 
   el("detailLeagueLabel").textContent = match.tournamentName;
   el("detailKickoffLabel").textContent = fmtTime(match.startTime);
-  el("detailPseudoScore").textContent = buildPseudoScore(analysis);
+  el("detailPseudoScore").textContent = analysis?.primary?.label || buildPseudoScore(analysis);
+  el("detailMatchDayLabel").textContent = state.language === "ro" ? "Azi" : "Today";
   setBadgeVisual("detailHomeBadge", match.home);
   setBadgeVisual("detailAwayBadge", match.away);
   el("detailHomeName").textContent = displayTeamName(match.home);
@@ -852,29 +800,29 @@ function renderDetail() {
     const tab = button.getAttribute("data-detail-tab");
     button.classList.toggle("is-active", tab === state.detailTab);
     if (tab === "overview") button.textContent = t("detailOverview");
+    if (tab === "predictions") button.textContent = t("detailPredictions");
+    if (tab === "form") button.textContent = t("detailForm");
+    if (tab === "h2h") button.textContent = t("detailH2H");
     if (tab === "stats") button.textContent = t("detailStats");
-    if (tab === "timeline") button.textContent = t("detailTimeline");
   });
 
   el("detailOverviewTab").hidden = state.detailTab !== "overview";
+  el("detailPredictionsTab").hidden = state.detailTab !== "predictions";
+  el("detailFormTab").hidden = state.detailTab !== "form";
+  el("detailH2HTab").hidden = state.detailTab !== "h2h";
   el("detailStatsTab").hidden = state.detailTab !== "stats";
-  el("detailTimelineTab").hidden = state.detailTab !== "timeline";
 
   el("detailOverviewTab").innerHTML = analysis ? buildOverviewMarkup(match, analysis) : "";
+  el("detailPredictionsTab").innerHTML = analysis ? buildPredictionsMarkup(analysis) : "";
+  el("detailFormTab").innerHTML = analysis ? buildFormMarkup(match, historyEntry) : "";
+  el("detailH2HTab").innerHTML = analysis ? buildH2HMarkup(match, analysis) : "";
   el("detailStatsTab").innerHTML = analysis ? buildStatsMarkupWithComparison(match, analysis, historyEntry) : "";
-  el("detailTimelineTab").innerHTML = analysis ? buildTimelineMarkup(match, analysis) : renderStateCard(t("noData"), getSnapshotNotice());
 
   el("detailOverviewTab").querySelectorAll("[data-ask-ai-detail]").forEach((button) => {
     button.addEventListener("click", () => {
       state.activeScreen = "ai";
       state.aiMessage = buildInsightSentence(match, analysis);
       renderAll();
-    });
-  });
-  el("detailOverviewTab").querySelectorAll("[data-open-stats-detail]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.detailTab = "stats";
-      renderDetail();
     });
   });
 }
@@ -970,6 +918,7 @@ function renderBottomNav() {
   Object.entries(map).forEach(([screen, id]) => {
     el(id).classList.toggle("is-active", state.activeScreen === screen);
   });
+  el("navAnalysisBtn").classList.toggle("is-active", state.activeScreen === "detail");
 }
 
 function renderScreens() {
@@ -979,6 +928,8 @@ function renderScreens() {
   el("profileScreen").hidden = state.activeScreen !== "profile";
   el("detailScreen").hidden = state.activeScreen !== "detail";
   el("backFromDetailBtn").hidden = state.activeScreen !== "detail";
+  el("appTopbar").hidden = state.activeScreen === "detail";
+  if (state.activeScreen === "detail") el("searchDrawer").hidden = true;
 }
 
 function renderAll() {
@@ -1056,20 +1007,13 @@ function bindActions() {
 
   el("navHomeBtn").addEventListener("click", () => { state.activeScreen = "home"; renderAll(); });
   el("navMatchesBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
+  el("navAnalysisBtn").addEventListener("click", () => { state.activeScreen = "detail"; renderAll(); });
   el("navAiBtn").addEventListener("click", () => { state.activeScreen = "ai"; renderAll(); });
   el("navProfileBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("backFromDetailBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
+  el("analysisBackBtn").addEventListener("click", () => { state.activeScreen = "home"; renderAll(); });
+  el("profileShortcutBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("profileRefreshBtn").addEventListener("click", () => { window.location.reload(); });
-  el("openMatchesFromHomeBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
-  el("openFeaturedDetailBtn").addEventListener("click", () => { state.activeScreen = "detail"; renderAll(); });
-  el("openAiFromHeroBtn").addEventListener("click", () => {
-    const featured = getFeaturedMatch();
-    const analysis = getAnalysis(featured);
-    state.aiPromptUsed = true;
-    state.aiMessage = buildInsightSentence(featured, analysis);
-    state.activeScreen = "ai";
-    renderAll();
-  });
 
   document.querySelectorAll("[data-filter]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1097,7 +1041,7 @@ function bindActions() {
   });
 
   el("matchesCalendarBtn").addEventListener("click", () => {
-    state.matchFilter = state.matchFilter === "all" ? "latest" : "all";
+    state.matchFilter = state.matchFilter === "weekend" ? "latest" : "weekend";
     renderMatches();
   });
 

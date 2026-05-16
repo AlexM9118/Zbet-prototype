@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#05070A" />
   <title>AIRO</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=39" />
-  <link rel="apple-touch-icon" href="./icons/airo-touch-icon-180.png?v=39" />
-  <link rel="stylesheet" href="./styles.css?v=39" />
+  <link rel="manifest" href="./manifest.webmanifest?v=40" />
+  <link rel="apple-touch-icon" href="./icons/airo-touch-icon-180.png?v=40" />
+  <link rel="stylesheet" href="./styles.css?v=40" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -23,12 +23,9 @@
 
   <div class="app-shell">
     <div class="device-frame">
-      <header class="topbar">
+      <header id="appTopbar" class="topbar">
         <div class="brand-cluster">
           <button id="backFromDetailBtn" class="icon-button back-button" type="button" hidden aria-label="Back">‹</button>
-          <div class="brand-mark">
-            <img src="./icons/airo-mark.svg" alt="AIRO" />
-          </div>
           <div class="brand-copy">
             <div class="brand-name">AIRO</div>
             <button id="adminModeTrigger" class="brand-tagline" type="button">See Football Smarter</button>
@@ -36,6 +33,7 @@
         </div>
 
         <div class="topbar-actions">
+          <button id="profileShortcutBtn" class="avatar-button" type="button" aria-label="Profile shortcut">A</button>
           <button id="searchToggleBtn" class="icon-button" type="button" aria-label="Search">
             <span class="search-icon" aria-hidden="true"></span>
           </button>
@@ -52,66 +50,14 @@
 
       <main class="screen-shell">
         <section id="homeScreen" class="screen-view">
-          <div class="screen-headline">
+          <div class="screen-headline home-headline">
             <div>
-              <div id="homeGreeting" class="headline-title">Football Feed</div>
-              <div id="homeSubtitle" class="headline-subtitle">Sunday, 16 May 2026</div>
+              <div id="homeGreeting" class="headline-title">Here are today’s top AI match insights</div>
+              <div id="homeSubtitle" class="headline-subtitle">TODAY • MAY 16</div>
             </div>
-            <button id="openMatchesFromHomeBtn" class="ghost-link" type="button">Explore all</button>
           </div>
 
-          <section class="hero-card">
-            <div class="hero-card-top">
-              <div>
-                <div class="section-kicker">Top AI Insight</div>
-                <h2 id="heroMatchTitle">Loading featured match…</h2>
-                <div id="heroMatchMeta" class="muted-copy">—</div>
-              </div>
-              <div id="heroConfidence" class="confidence-ring">—</div>
-            </div>
-
-            <div class="hero-teams">
-              <div class="crest-block">
-                <div id="heroHomeBadge" class="crest-mark">KY</div>
-                <span id="heroHomeName">Home</span>
-              </div>
-              <div class="hero-versus">VS</div>
-              <div class="crest-block">
-                <div id="heroAwayBadge" class="crest-mark">AI</div>
-                <span id="heroAwayName">Away</span>
-              </div>
-            </div>
-
-            <div id="heroInsight" class="insight-copy">AIRO is building the strongest angle for this matchup.</div>
-
-            <div class="hero-picks-row">
-              <div class="metric-chip">
-                <span>Best Bet</span>
-                <strong id="heroPrimaryPick">—</strong>
-              </div>
-              <div class="metric-chip">
-                <span>Plan B</span>
-                <strong id="heroSecondaryPick">—</strong>
-              </div>
-              <div class="metric-chip">
-                <span>Momentum</span>
-                <strong id="heroMomentum">—</strong>
-              </div>
-            </div>
-
-            <div class="hero-actions">
-              <button id="openFeaturedDetailBtn" class="cta-button" type="button">View Analysis</button>
-              <button id="openAiFromHeroBtn" class="secondary-button" type="button">Ask AIRO</button>
-            </div>
-          </section>
-
-          <section class="feed-section">
-            <div class="section-header">
-              <div class="section-title">Top AI insights</div>
-              <div id="feedDateChip" class="section-chip">Latest</div>
-            </div>
-            <div id="homeFeedList" class="feed-list snap-feed"></div>
-          </section>
+          <div id="homeFeedList" class="airo-home-list"></div>
         </section>
 
         <section id="matchesScreen" class="screen-view" hidden>
@@ -131,13 +77,12 @@
 
           <div class="segmented-tabs">
             <button class="segmented-tab is-active" data-filter="latest" type="button">Today</button>
-            <button class="segmented-tab" data-filter="live" type="button">Live</button>
-            <button class="segmented-tab" data-filter="all" type="button">Upcoming</button>
-            <button class="segmented-tab" data-filter="featured" type="button">AI Picks</button>
+            <button class="segmented-tab" data-filter="tomorrow" type="button">Tomorrow</button>
+            <button class="segmented-tab" data-filter="weekend" type="button">Weekend</button>
+            <button class="segmented-tab" data-filter="featured" type="button">Top Picks</button>
           </div>
 
           <div id="snapshotNotice" class="snapshot-banner"></div>
-          <div id="leagueChipRow" class="chip-row"></div>
           <div id="matchesList" class="match-list"></div>
         </section>
 
@@ -263,37 +208,46 @@
         </section>
 
         <section id="detailScreen" class="screen-view" hidden>
-          <div class="match-hero">
-            <div class="detail-topline">
-              <div id="detailLeagueLabel" class="detail-league">Premier League</div>
-              <button id="detailFavoriteBtn" class="icon-button small-icon" type="button" aria-label="Favorite">☆</button>
-            </div>
+          <div class="screen-headline analysis-header">
+            <button id="analysisBackBtn" class="icon-button back-button" type="button" aria-label="Back to Home">‹</button>
+            <div class="headline-title analysis-title">Match Analysis</div>
+            <button id="detailFavoriteBtn" class="icon-button small-icon" type="button" aria-label="Favorite">☆</button>
+          </div>
 
-            <div class="scoreboard">
-              <div class="score-team">
+          <div class="analysis-hero">
+            <div class="analysis-hero-topline">
+              <div id="detailLeagueLabel" class="detail-league">Premier League</div>
+              <div id="detailMatchDayLabel" class="matchday-label">Today</div>
+            </div>
+            <div class="analysis-hero-main">
+              <div class="analysis-side">
                 <div id="detailHomeBadge" class="crest-mark large-crest">KY</div>
                 <span id="detailHomeName">Home</span>
               </div>
-              <div class="score-center">
-                <strong id="detailPseudoScore">2 - 1</strong>
-                <div id="detailKickoffLabel" class="score-subline">67:35</div>
+              <div class="analysis-center">
+                <strong id="detailKickoffLabel" class="analysis-kickoff">18:30</strong>
+                <div id="detailPseudoScore" class="analysis-prediction">Over 2.5 Goals</div>
               </div>
-              <div class="score-team">
+              <div class="analysis-side">
                 <div id="detailAwayBadge" class="crest-mark large-crest">AI</div>
                 <span id="detailAwayName">Away</span>
               </div>
             </div>
+          </div>
 
-            <div class="detail-tabs">
-              <button class="detail-tab is-active" data-detail-tab="overview" type="button">Overview</button>
-              <button class="detail-tab" data-detail-tab="stats" type="button">Stats</button>
-              <button class="detail-tab" data-detail-tab="timeline" type="button">Timeline</button>
-            </div>
+          <div class="detail-tabs">
+            <button class="detail-tab is-active" data-detail-tab="overview" type="button">Overview</button>
+            <button class="detail-tab" data-detail-tab="predictions" type="button">Predictions</button>
+            <button class="detail-tab" data-detail-tab="form" type="button">Team Form</button>
+            <button class="detail-tab" data-detail-tab="h2h" type="button">H2H</button>
+            <button class="detail-tab" data-detail-tab="stats" type="button">Stats</button>
           </div>
 
           <div id="detailOverviewTab" class="detail-panel"></div>
+          <div id="detailPredictionsTab" class="detail-panel" hidden></div>
+          <div id="detailFormTab" class="detail-panel" hidden></div>
+          <div id="detailH2HTab" class="detail-panel" hidden></div>
           <div id="detailStatsTab" class="detail-panel" hidden></div>
-          <div id="detailTimelineTab" class="detail-panel" hidden></div>
         </section>
       </main>
 
@@ -303,15 +257,19 @@
           <span>Home</span>
         </button>
         <button id="navMatchesBtn" class="bottom-nav-item" type="button">
-          <span class="bottom-nav-icon">≣</span>
+          <span class="bottom-nav-icon">◫</span>
           <span>Matches</span>
         </button>
+        <button id="navAnalysisBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon">▣</span>
+          <span>Analysis</span>
+        </button>
         <button id="navAiBtn" class="bottom-nav-item" type="button">
-          <span class="bottom-nav-icon">◉</span>
-          <span>AI</span>
+          <span class="bottom-nav-icon">◎</span>
+          <span>AI Chat</span>
         </button>
         <button id="navProfileBtn" class="bottom-nav-item" type="button">
-          <span class="bottom-nav-icon">◎</span>
+          <span class="bottom-nav-icon">◌</span>
           <span>Profile</span>
         </button>
       </nav>
@@ -339,6 +297,6 @@
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=39"></script>
+  <script type="module" src="./app.mjs?v=40"></script>
 </body>
 </html>
