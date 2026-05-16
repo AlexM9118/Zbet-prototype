@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#05070A" />
   <title>AIRO</title>
-  <link rel="manifest" href="./manifest.webmanifest?v=30" />
+  <link rel="manifest" href="./manifest.webmanifest?v=31" />
   <link rel="apple-touch-icon" href="./icons/airo-mark.svg" />
-  <link rel="stylesheet" href="./styles.css?v=30" />
+  <link rel="stylesheet" href="./styles.css?v=31" />
 </head>
 <body>
   <div id="updateBanner" class="update-banner" hidden>
@@ -36,7 +36,9 @@
         </div>
 
         <div class="topbar-actions">
-          <button id="modelInfoBtn" class="icon-button" type="button" aria-label="Model info">i</button>
+          <button id="openAlertsBtn" class="icon-button" type="button" aria-label="Alerts">
+            <span class="bell-icon" aria-hidden="true"></span>
+          </button>
           <button id="searchToggleBtn" class="icon-button" type="button" aria-label="Search">
             <span class="search-icon" aria-hidden="true"></span>
           </button>
@@ -55,8 +57,8 @@
         <section id="homeScreen" class="screen-view">
           <div class="screen-headline">
             <div>
-              <div id="homeGreeting" class="headline-title">Good evening, Alex</div>
-              <div id="homeSubtitle" class="headline-subtitle">Here’s what AIRO found for you.</div>
+              <div id="homeGreeting" class="headline-title">Football Feed</div>
+              <div id="homeSubtitle" class="headline-subtitle">Sunday, 16 May 2026</div>
             </div>
             <button id="openMatchesFromHomeBtn" class="ghost-link" type="button">Explore all</button>
           </div>
@@ -111,7 +113,7 @@
               <div class="section-title">Top AI insights</div>
               <div id="feedDateChip" class="section-chip">Latest</div>
             </div>
-            <div id="homeFeedList" class="feed-list"></div>
+            <div id="homeFeedList" class="feed-list snap-feed"></div>
           </section>
         </section>
 
@@ -290,18 +292,14 @@
 
             <div class="detail-tabs">
               <button class="detail-tab is-active" data-detail-tab="overview" type="button">Overview</button>
-              <button class="detail-tab" data-detail-tab="insight" type="button">AI Insight</button>
               <button class="detail-tab" data-detail-tab="stats" type="button">Stats</button>
               <button class="detail-tab" data-detail-tab="timeline" type="button">Timeline</button>
-              <button class="detail-tab" data-detail-tab="lineups" type="button">Lineups</button>
             </div>
           </div>
 
           <div id="detailOverviewTab" class="detail-panel"></div>
-          <div id="detailInsightTab" class="detail-panel" hidden></div>
           <div id="detailStatsTab" class="detail-panel" hidden></div>
           <div id="detailTimelineTab" class="detail-panel" hidden></div>
-          <div id="detailLineupsTab" class="detail-panel" hidden></div>
         </section>
       </main>
 
@@ -317,10 +315,6 @@
         <button id="navAiBtn" class="bottom-nav-item" type="button">
           <span class="bottom-nav-icon">◉</span>
           <span>AI</span>
-        </button>
-        <button id="navAlertsBtn" class="bottom-nav-item" type="button">
-          <span class="bottom-nav-icon">◌</span>
-          <span>Alerts</span>
         </button>
         <button id="navProfileBtn" class="bottom-nav-item" type="button">
           <span class="bottom-nav-icon">◎</span>
@@ -351,6 +345,6 @@
     </section>
   </div>
 
-  <script type="module" src="./app.mjs?v=30"></script>
+  <script type="module" src="./app.mjs?v=31"></script>
 </body>
 </html>

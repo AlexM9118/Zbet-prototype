@@ -1,7 +1,7 @@
 import { getJson, fmtDayLong, fmtTime, fmtOdds, pct01, escapeHtml } from "./js/utils.mjs";
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 
-const APP_VERSION = "30";
+const APP_VERSION = "31";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -9,8 +9,8 @@ const ADMIN_MODE_CODE = "18111991";
 
 const COPY = {
   en: {
-    greeting: "Good evening, Alex",
-    homeSubtitle: "Here’s what AIRO found for you.",
+    greeting: "Football Feed",
+    homeSubtitle: "",
     exploreAll: "Explore all",
     topInsight: "Top AI Insight",
     viewAnalysis: "View Analysis",
@@ -46,10 +46,8 @@ const COPY = {
     unlockKyroPlus: "Unlock AIRO+",
     kyroPlusSubtext: "Advanced football analysis powered by AIRO.",
     detailOverview: "Overview",
-    detailInsight: "AI Insight",
     detailStats: "Stats",
     detailTimeline: "Timeline",
-    detailLineups: "Lineups",
     modelPulse: "Recent model pulse",
     signalRate: "AIRO signal rate",
     noData: "Data unavailable.",
@@ -59,8 +57,8 @@ const COPY = {
     reloadAction: "Reload"
   },
   ro: {
-    greeting: "Buna seara, Alex",
-    homeSubtitle: "Iata ce a gasit AIRO pentru tine.",
+    greeting: "Flux fotbal",
+    homeSubtitle: "",
     exploreAll: "Vezi tot",
     topInsight: "Insight AI principal",
     viewAnalysis: "Vezi analiza",
@@ -96,10 +94,8 @@ const COPY = {
     unlockKyroPlus: "Deblocheaza AIRO+",
     kyroPlusSubtext: "Analiza avansata de fotbal, sustinuta de AIRO.",
     detailOverview: "Prezentare",
-    detailInsight: "Insight AI",
     detailStats: "Statistici",
     detailTimeline: "Timeline",
-    detailLineups: "Formatii",
     modelPulse: "Puls model recent",
     signalRate: "Rata de semnal AIRO",
     noData: "Date indisponibile.",
@@ -127,7 +123,8 @@ const state = {
   adminMode: false,
   language: "en",
   aiMessage: "",
-  favoriteFixtureIds: new Set()
+  favoriteFixtureIds: new Set(),
+  aiPromptUsed: false
 };
 
 let pendingWorker = null;
@@ -400,7 +397,6 @@ function renderSearchResults() {
 function renderShellCopy() {
   document.title = "AIRO";
   el("homeGreeting").textContent = t("greeting");
-  el("homeSubtitle").textContent = t("homeSubtitle");
   el("openMatchesFromHomeBtn").textContent = t("exploreAll");
   el("feedDateChip").textContent = t("latest");
   el("matchesSubtitle").textContent = t("matchesSubtitle");
@@ -411,12 +407,11 @@ function renderShellCopy() {
   el("navHomeBtn").lastElementChild.textContent = "Home";
   el("navMatchesBtn").lastElementChild.textContent = t("matches");
   el("navAiBtn").lastElementChild.textContent = "AI";
-  el("navAlertsBtn").lastElementChild.textContent = state.language === "ro" ? "Alerte" : "Alerts";
   el("navProfileBtn").lastElementChild.textContent = t("profile");
   el("applyUpdateBtn").textContent = t("reloadAction");
   el("updateBanner").querySelector(".update-banner-title").textContent = t("reloadTitle");
   el("updateBanner").querySelector(".update-banner-copy").textContent = t("reloadCopy");
-  el("modelSummaryModal").querySelector(".modal-kicker").textContent = t("modelPulse");
+  el("modelSummaryModal").querySelector(".modal-kicker").textContent = t("alerts");
 }
 
 function renderStateCard(title, copy) {
@@ -433,6 +428,10 @@ function renderHome() {
   const featured = getFeaturedMatch();
   const analysis = getAnalysis(featured);
   const topMatches = getTopMatches(4);
+  el("homeGreeting").textContent = t("greeting");
+  el("homeSubtitle").textContent = state.latestAvailableDay
+    ? fmtDayLong(state.latestAvailableDay)
+    : getSnapshotNotice();
 
   if (!featured || !analysis) {
     el("heroMatchTitle").textContent = state.language === "ro" ? "Nu exista un meci principal in snapshot" : "No featured match in the snapshot";
@@ -458,6 +457,7 @@ function renderHome() {
   el("heroAwayName").textContent = displayTeamName(featured.away);
 
   const feed = el("homeFeedList");
+  feed.className = "feed-list snap-feed";
   const types = ["signal", "momentum", "value", "signal"];
   const labels = {
     signal: state.language === "ro" ? "Strong Signal" : "Strong Signal",
@@ -619,12 +619,14 @@ function renderAiScreen() {
         "Strong over 2.5 spots",
         "Analyze the featured match"
       ];
+  grid.hidden = state.aiPromptUsed;
   grid.innerHTML = prompts.map((prompt) => `<button class="prompt-chip" type="button" data-ai-prompt="${escapeHtml(prompt)}">${escapeHtml(prompt)}</button>`).join("");
 
   grid.querySelectorAll("[data-ai-prompt]").forEach((button) => {
     button.addEventListener("click", () => {
       const prompt = button.getAttribute("data-ai-prompt") || "";
       if (!featured || !analysis) return;
+      state.aiPromptUsed = true;
       if (prompt.includes("featured") || prompt.includes("principal") || prompt.includes("best") || prompt.includes("meci")) {
         state.aiMessage = buildInsightSentence(featured, analysis);
       } else {
@@ -756,6 +758,11 @@ function buildOverviewMarkup(match, analysis) {
       <div class="signal-meter"><span style="width:${signalWidth}%"></span></div>
     </article>
 
+    <article class="detail-panel-card">
+      <div class="section-kicker">AI Insight</div>
+      <div class="insight-copy">${escapeHtml(buildInsightSentence(match, analysis))}</div>
+    </article>
+
     <article class="overview-card">
       <div class="section-kicker">Smart Predictions</div>
       <div class="smart-picks-grid">
@@ -769,22 +776,6 @@ function buildOverviewMarkup(match, analysis) {
       <div class="action-row" style="margin-top:14px;">
         <button class="cta-button" type="button" data-ask-ai-detail>${state.language === "ro" ? "Intreaba AI" : "Ask AI"}</button>
         <button class="secondary-button" type="button" data-open-alerts-detail>${state.language === "ro" ? "Creeaza alerta" : "Create Alert"}</button>
-      </div>
-    </article>
-  `;
-}
-
-function buildInsightMarkup(match, analysis) {
-  const reasons = analysis?.reasons || [];
-  return `
-    <article class="detail-panel-card">
-      <div class="section-kicker">AI Insight</div>
-      <div class="insight-copy">${escapeHtml(buildInsightSentence(match, analysis))}</div>
-    </article>
-    <article class="detail-panel-card">
-      <div class="section-kicker">${state.language === "ro" ? "De ce acest semnal" : "Why this signal"}</div>
-      <div class="feed-list">
-        ${reasons.slice(0, 4).map((reason) => `<div class="feed-excerpt" style="margin-top:0;">${escapeHtml(reason)}</div>`).join("")}
       </div>
     </article>
   `;
@@ -853,43 +844,6 @@ function buildTimelineMarkup(match, analysis) {
   `;
 }
 
-function buildLineupsMarkup(match, historyEntry) {
-  const homeForm = historyEntry?.homeRecentResults || [];
-  const awayForm = historyEntry?.awayRecentResults || [];
-  const homeLine = homeForm.length ? homeForm.map((item) => item.result || "—").join(" • ") : t("noData");
-  const awayLine = awayForm.length ? awayForm.map((item) => item.result || "—").join(" • ") : t("noData");
-
-  return `
-    <article class="detail-panel-card">
-      <div class="section-kicker">${state.language === "ro" ? "Lineups" : "Lineups"}</div>
-      <div class="insight-copy">${state.language === "ro" ? "Formatiile oficiale nu sunt inca disponibile in feedul public curent. AIRO afiseaza in schimb contextul recent al echipelor." : "Official lineups are not yet available in the current public feed. AIRO shows recent team context instead."}</div>
-    </article>
-    <article class="compare-card">
-      <div class="compare-header">
-        <div class="score-team">
-          ${badgeMarkup(match.home)}
-          <span>${escapeHtml(displayTeamName(match.home))}</span>
-        </div>
-        <div class="section-chip">VS</div>
-        <div class="score-team">
-          ${badgeMarkup(match.away)}
-          <span>${escapeHtml(displayTeamName(match.away))}</span>
-        </div>
-      </div>
-      <div class="lineup-stack">
-        <div class="lineup-card">
-          <div class="section-kicker">${state.language === "ro" ? "Forma recenta gazde" : "Home recent form"}</div>
-          <div class="lineup-copy">${escapeHtml(homeLine)}</div>
-        </div>
-        <div class="lineup-card">
-          <div class="section-kicker">${state.language === "ro" ? "Forma recenta oaspeti" : "Away recent form"}</div>
-          <div class="lineup-copy">${escapeHtml(awayLine)}</div>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
 function buildStatsMarkupWithComparison(match, analysis, historyEntry) {
   const homeStats = historyEntry?.homeStats;
   const awayStats = historyEntry?.awayStats;
@@ -945,23 +899,17 @@ function renderDetail() {
     const tab = button.getAttribute("data-detail-tab");
     button.classList.toggle("is-active", tab === state.detailTab);
     if (tab === "overview") button.textContent = t("detailOverview");
-    if (tab === "insight") button.textContent = t("detailInsight");
     if (tab === "stats") button.textContent = t("detailStats");
     if (tab === "timeline") button.textContent = t("detailTimeline");
-    if (tab === "lineups") button.textContent = t("detailLineups");
   });
 
   el("detailOverviewTab").hidden = state.detailTab !== "overview";
-  el("detailInsightTab").hidden = state.detailTab !== "insight";
   el("detailStatsTab").hidden = state.detailTab !== "stats";
   el("detailTimelineTab").hidden = state.detailTab !== "timeline";
-  el("detailLineupsTab").hidden = state.detailTab !== "lineups";
 
   el("detailOverviewTab").innerHTML = analysis ? buildOverviewMarkup(match, analysis) : "";
-  el("detailInsightTab").innerHTML = analysis ? buildInsightMarkup(match, analysis) : "";
   el("detailStatsTab").innerHTML = analysis ? buildStatsMarkupWithComparison(match, analysis, historyEntry) : "";
   el("detailTimelineTab").innerHTML = analysis ? buildTimelineMarkup(match, analysis) : renderStateCard(t("noData"), getSnapshotNotice());
-  el("detailLineupsTab").innerHTML = buildLineupsMarkup(match, historyEntry);
 
   el("detailOverviewTab").querySelectorAll("[data-ask-ai-detail]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1064,7 +1012,6 @@ function renderBottomNav() {
     home: "navHomeBtn",
     matches: "navMatchesBtn",
     ai: "navAiBtn",
-    alerts: "navAlertsBtn",
     profile: "navProfileBtn"
   };
   Object.entries(map).forEach(([screen, id]) => {
@@ -1159,14 +1106,15 @@ function bindActions() {
   el("navHomeBtn").addEventListener("click", () => { state.activeScreen = "home"; renderAll(); });
   el("navMatchesBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
   el("navAiBtn").addEventListener("click", () => { state.activeScreen = "ai"; renderAll(); });
-  el("navAlertsBtn").addEventListener("click", () => { state.activeScreen = "alerts"; renderAll(); });
   el("navProfileBtn").addEventListener("click", () => { state.activeScreen = "profile"; renderAll(); });
   el("backFromDetailBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
   el("openMatchesFromHomeBtn").addEventListener("click", () => { state.activeScreen = "matches"; renderAll(); });
+  el("openAlertsBtn").addEventListener("click", () => { state.activeScreen = "alerts"; renderAll(); });
   el("openFeaturedDetailBtn").addEventListener("click", () => { state.activeScreen = "detail"; renderAll(); });
   el("openAiFromHeroBtn").addEventListener("click", () => {
     const featured = getFeaturedMatch();
     const analysis = getAnalysis(featured);
+    state.aiPromptUsed = true;
     state.aiMessage = buildInsightSentence(featured, analysis);
     state.activeScreen = "ai";
     renderAll();
@@ -1223,11 +1171,11 @@ function bindActions() {
   el("useFeaturedPromptBtn").addEventListener("click", () => {
     const featured = getFeaturedMatch();
     const analysis = getAnalysis(featured);
+    state.aiPromptUsed = true;
     state.aiMessage = buildInsightSentence(featured, analysis);
     renderAiScreen();
   });
 
-  el("modelInfoBtn").addEventListener("click", () => { el("modelSummaryModal").hidden = false; });
   el("closeModelSummaryBtn").addEventListener("click", () => { el("modelSummaryModal").hidden = true; });
   el("modelSummaryBackdrop").addEventListener("click", () => { el("modelSummaryModal").hidden = true; });
 
