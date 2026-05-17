@@ -1564,8 +1564,8 @@ button{cursor:pointer}
   display:grid;
   grid-template-columns:repeat(5, minmax(0,1fr));
   gap:0;
-  min-height:74px;
-  padding:4px 8px 6px;
+  min-height:64px;
+  padding:0 8px 2px;
   border-top:1px solid rgba(255,255,255,0.04);
   background:#05070A;
   box-shadow:none;
@@ -1579,8 +1579,8 @@ button{cursor:pointer}
   flex-direction:column;
   align-items:center;
   justify-content:flex-end;
-  gap:3px;
-  padding:0 2px 2px;
+  gap:2px;
+  padding:0 2px 0;
   border-radius:0;
   font-size:11px;
   font-weight:500;
@@ -1589,6 +1589,36 @@ button{cursor:pointer}
   color:var(--green);
   background:none;
   box-shadow:none;
+}
+.bottom-nav-item.is-active .nav-icon-home::before{
+  background:currentColor;
+}
+.bottom-nav-item.is-active .nav-icon-home::after{
+  background:currentColor;
+  border:none;
+  width:11px;
+  height:11px;
+  left:4.5px;
+  top:2px;
+  clip-path:polygon(50% 0, 100% 48%, 100% 100%, 0 100%, 0 48%);
+  transform:none;
+  border-radius:2px 2px 0 0;
+}
+.bottom-nav-item.is-active .nav-icon-matches::before,
+.bottom-nav-item.is-active .nav-icon-analysis::before,
+.bottom-nav-item.is-active .nav-icon-chat::before,
+.bottom-nav-item.is-active .nav-icon-profile::before{
+  background:currentColor;
+}
+.bottom-nav-item.is-active .nav-icon-profile::after{
+  background:currentColor;
+  border:none;
+  left:4px;
+  right:4px;
+  bottom:2px;
+  height:8px;
+  border-top-left-radius:10px;
+  border-top-right-radius:10px;
 }
 .bottom-nav-icon{
   width:20px;
@@ -1819,7 +1849,7 @@ button{cursor:pointer}
   }
 
   .screen-shell{
-    padding:0 20px 44px;
+    padding:0 20px 8px;
   }
 
   .screen-view{
@@ -1875,15 +1905,15 @@ button{cursor:pointer}
 
   .bottom-nav{
     gap:0;
-    min-height:72px;
-    padding:0 8px 4px;
+    min-height:58px;
+    padding:0 8px 0;
     border-radius:0;
   }
 
   .bottom-nav-item{
     min-height:100%;
-    padding:0 2px 1px;
-    gap:2px;
+    padding:0 2px 0;
+    gap:1px;
     font-size:11px;
   }
 
