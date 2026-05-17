@@ -1564,8 +1564,9 @@ button{cursor:pointer}
   display:grid;
   grid-template-columns:repeat(5, minmax(0,1fr));
   gap:0;
-  min-height:64px;
-  padding:0 8px 2px;
+  height:calc(50px + env(safe-area-inset-bottom));
+  min-height:calc(50px + env(safe-area-inset-bottom));
+  padding:0 8px 0;
   border-top:1px solid rgba(255,255,255,0.04);
   background:#05070A;
   box-shadow:none;
@@ -1580,10 +1581,12 @@ button{cursor:pointer}
   align-items:center;
   justify-content:flex-end;
   gap:2px;
-  padding:0 2px 0;
+  height:50px;
+  padding:0 2px 4px;
   border-radius:0;
   font-size:11px;
   font-weight:500;
+  position:relative;
 }
 .bottom-nav-item.is-active{
   color:var(--green);
@@ -1907,20 +1910,22 @@ button{cursor:pointer}
 
   .bottom-nav{
     gap:0;
-    min-height:54px;
+    height:calc(46px + env(safe-area-inset-bottom));
+    min-height:calc(46px + env(safe-area-inset-bottom));
     padding:0 8px 0;
     border-radius:0;
   }
 
   .bottom-nav-item{
-    min-height:100%;
-    padding:0 2px 0;
+    height:46px;
+    min-height:46px;
+    padding:0 2px 2px;
     gap:1px;
-    font-size:11px;
+    font-size:10px;
   }
 
   .bottom-nav-icon{
-    width:20px;
-    height:20px;
+    width:18px;
+    height:18px;
   }
 }
