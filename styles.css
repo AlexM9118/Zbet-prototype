@@ -1815,7 +1815,7 @@ button{cursor:pointer}
   }
 
   .screen-shell{
-    padding:0 20px calc(56px + max(0px, calc(env(safe-area-inset-bottom) - 16px)));
+    padding:0 20px 48px;
   }
 
   .screen-view{
@@ -1837,7 +1837,7 @@ button{cursor:pointer}
   .home-headline .headline-title{
     font-size:22px;
     line-height:1.06;
-    max-width:none;
+    max-width:13ch;
   }
 
   .home-match-card{
@@ -1866,13 +1866,14 @@ button{cursor:pointer}
 
   .bottom-nav{
     gap:0;
-    padding:4px 8px max(0px, calc(env(safe-area-inset-bottom) - 18px));
+    min-height:64px;
+    padding:6px 8px 0;
     border-radius:0;
   }
 
   .bottom-nav-item{
-    padding:2px 2px;
-    gap:3px;
+    padding:2px 2px 0;
+    gap:2px;
     font-size:11px;
   }
 

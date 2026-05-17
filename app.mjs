@@ -2,7 +2,7 @@ import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } fr
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "47";
+const APP_VERSION = "48";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -481,7 +481,12 @@ function renderStateCard(title, copy) {
 
 function renderHome() {
   const topMatches = getTopMatches(5);
-  el("homeGreeting").textContent = t("greeting");
+  const homeGreeting = el("homeGreeting");
+  if (state.language === "en") {
+    homeGreeting.innerHTML = "Here are today’s top<br>AI match insights";
+  } else {
+    homeGreeting.textContent = t("greeting");
+  }
   el("homeSubtitle").textContent = state.latestAvailableDay
     ? `${state.language === "ro" ? "ASTAZI" : "TODAY"} • ${fmtDayLong(state.latestAvailableDay).toUpperCase()}`
     : getSnapshotNotice();
