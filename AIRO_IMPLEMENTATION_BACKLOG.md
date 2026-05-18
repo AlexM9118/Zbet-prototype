@@ -1,40 +1,128 @@
 # AIRO Implementation Backlog
 
-This file turns the final AIRO spec into an execution backlog for the MVP.
+This file turns the final AIRO spec into a practical build and migration plan.
 
-## Must Have
+## Product freeze
 
-### Product shell
-- [x] AIRO branding in current PWA shell
+AIRO stays:
+- premium
+- pre-match only
+- editorial
+- AI-curated
+
+AIRO does not chase:
+- live score behavior
+- live momentum
+- push/live alerts in MVP
+- pixel-perfect iPhone shell behavior inside PWA
+
+## What the PWA is for
+
+The current PWA is the working product prototype for:
+- branding
+- copy
+- information hierarchy
+- match card layout
+- analysis logic
+- data shaping
+- screen structure
+
+The PWA is not the final place to perfect:
+- iPhone safe-area handling
+- bottom dock positioning
+- keyboard-native chat behavior
+- premium navigation transitions
+- App Store-grade tab interactions
+
+## Tab-by-tab validation
+
+### Home
+
+Validate in PWA:
+- [x] AIRO branding
+- [x] Home headline direction
+- [x] Top curated matches concept
+- [x] Compact right-side prediction block
+- [x] Confidence bars instead of donuts
+- [x] Real club logos on cards
+- [ ] Final card density and spacing
+
+Finish in native:
+- [ ] Final bottom dock relationship with viewport
+- [ ] Final icon active states
+- [ ] Final typography rhythm
+- [ ] Final touch/press states
+
+### Matches
+
+Validate in PWA:
+- [x] Screen structure
+- [x] Search / Filters / Calendar placement
+- [x] Today / Tomorrow / Weekend / Top Picks filter model
+- [x] Compact match card structure
+- [ ] Remove non-essential snapshot/debug feeling
+
+Finish in native:
+- [ ] Final filter pills polish
+- [ ] Final card spacing / density
+- [ ] Native-feeling navigation into Analysis
+
+### Analysis
+
+Validate in PWA:
+- [x] Screen exists
+- [x] Tab structure exists
+- [x] AI verdict concept
+- [x] Confidence ring concept
+- [ ] Hero composition closer to final mockup
+- [ ] Predictions / Team Form / H2H density
+
+Finish in native:
+- [ ] Final hero layout
+- [ ] Final tab interaction polish
+- [ ] Final card density and spacing
+
+### AI Chat
+
+Validate in PWA:
+- [x] Fullscreen tab exists
+- [x] Prompt-driven assistant concept exists
+- [x] AI-first positioning is clear
+
+Finish in native:
+- [ ] Keyboard behavior
+- [ ] Chat composer polish
+- [ ] Suggested prompts / empty-state polish
+- [ ] Better transitions and input UX
+
+### Profile
+
+Validate in PWA:
+- [x] Settings structure exists
+- [x] Language selection exists
+- [x] Favorites surfaced
+- [x] Account / Privacy / Support skeleton
+
+Finish in native:
+- [ ] Premium profile polish
+- [ ] Remove prototype-only controls once native update flow exists
+
+## MVP build scope
+
+### Must Have
+- [x] AIRO branding in current shell
 - [x] Dark cinematic palette applied
-- [ ] Five-tab attached bottom navigation
 - [x] Safe-area aware top header
-- [ ] Floating glass tab bar matched 1:1 with final design
-
-### MVP screens
-- [ ] Splash screen
-- [x] Home screen shell
-- [x] Matches screen shell
+- [x] Home shell
+- [x] Matches shell
 - [x] Match Analysis shell
 - [x] AI Chat shell
 - [x] Profile shell
 - [x] Favorites surfaced in Profile
-
-### Match Analysis
-- [x] Overview tab
-- [x] AI Insight tab
-- [x] Stats tab
-- [x] Timeline tab
-- [x] Lineups tab placeholder
-- [ ] Probability ring component
-- [ ] Prediction grid closer to final mockup
-
-### UX states
-- [ ] Loading state on all screens
 - [x] Empty state support
 - [x] Stale snapshot messaging
-- [ ] No connection state
-- [ ] Error state
+- [ ] Loading state on all screens
+- [ ] Error / no connection states
 
 ### Data layer
 - [ ] Provider abstraction folder
@@ -43,33 +131,27 @@ This file turns the final AIRO spec into an execution backlog for the MVP.
 - [ ] Normalization contracts
 - [ ] Cache strategy
 
-## Should Have
-
-### Visual fidelity
-- [ ] Club logos from real source or mapped local pack
-- [ ] Home cards aligned 1:1 with final AIRO mockup
-- [ ] Matches cards aligned 1:1 with final AIRO mockup
-- [ ] Match Analysis hero aligned 1:1 with final AIRO mockup
-- [ ] Outline icon system replacing temporary glyphs
-
 ### Product behavior
 - [ ] Favorites persisted in storage
 - [ ] Search for clubs and leagues polished
 - [ ] AI prompts contextual per selected match
 
-### Partial screens
-- [ ] Legacy live and alerts references removed from current PWA
-- [ ] Advanced Stats visual-only MVP screen
-- [ ] Reports basic MVP screen
-- [ ] AIRO+ visual MVP screen
+## Native migration scope
 
-## Later
-
-### Native app rebuild
-- [ ] React Native Expo mobile app bootstrap
-- [ ] Navigation architecture in RN
+### Expo shell
+- [ ] React Native Expo bootstrap
+- [ ] Expo Router navigation
+- [ ] Native bottom tabs
+- [ ] SafeAreaContext integration
 - [ ] Zustand store
 - [ ] Reanimated / Moti motion system
+
+### Port from PWA
+- [ ] Port `zbet-engine` logic to TypeScript
+- [ ] Port logo mapping layer
+- [ ] Port curated Home feed logic
+- [ ] Port Analysis data model
+- [ ] Port AI Chat prompt layer
 
 ### Backend
 - [ ] NestJS bootstrap
@@ -87,7 +169,7 @@ This file turns the final AIRO spec into an execution backlog for the MVP.
 
 ## Current priority
 
-1. Make the current phone PWA visually match the AIRO final prompt more closely.
-2. Lock the MVP screen architecture.
-3. Replace temporary assets and placeholders with stable provider-backed data.
-4. Start RN/NestJS production architecture once the shell is accepted visually.
+1. Freeze PWA as product reference, not endless visual battleground.
+2. Validate each tab structurally in PWA.
+3. Replace temporary data flows with provider-backed data.
+4. Start Expo native shell for final iPhone-quality experience.
