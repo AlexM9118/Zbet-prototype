@@ -471,38 +471,38 @@ button{cursor:pointer}
 
 .airo-home-list{
   display:grid;
-  gap:10px;
+  gap:8px;
 }
 .home-match-card{
   width:100%;
   border:none;
   text-align:left;
   color:var(--text);
-  padding:16px 18px;
+  padding:14px 16px;
   border-radius:24px;
   background:#0b1420;
   border:1px solid rgba(255,255,255,0.05);
   box-shadow:0 14px 32px rgba(0,0,0,0.24);
   display:grid;
-  grid-template-columns:minmax(0,1fr) 1px 116px 12px;
-  gap:14px;
-  min-height:126px;
+  grid-template-columns:minmax(0,1fr) 1px 110px 10px;
+  gap:12px;
+  min-height:118px;
 }
 .home-card-left{
   display:grid;
   grid-template-columns:auto minmax(0,1fr);
-  gap:11px;
+  gap:10px;
   align-items:center;
 }
 .home-logos-stack{
   display:grid;
-  gap:8px;
+  gap:7px;
   justify-items:center;
   align-content:center;
 }
 .home-logo{
-  width:38px;
-  height:38px;
+  width:34px;
+  height:34px;
   border-radius:50%;
   font-size:10px;
   box-shadow:inset 0 0 0 2px rgba(255,255,255,0.08);
@@ -512,22 +512,22 @@ button{cursor:pointer}
 }
 .home-match-copy{
   display:grid;
-  gap:3px;
+  gap:2px;
   min-width:0;
   align-content:center;
 }
 .home-team-name{
-  font-size:13px;
+  font-size:12px;
   font-weight:700;
-  line-height:1.18;
+  line-height:1.16;
 }
 .home-meta-row{
   color:var(--muted);
-  font-size:11px;
+  font-size:10px;
 }
 .home-kickoff-row{
   color:#d3dae4;
-  font-size:11px;
+  font-size:10px;
 }
 .home-card-divider{
   width:1px;
@@ -536,23 +536,24 @@ button{cursor:pointer}
 .home-card-right{
   display:grid;
   align-content:center;
-  gap:5px;
+  gap:4px;
   justify-items:start;
 }
 .home-prediction-label{
   color:var(--green);
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
-  line-height:1.2;
+  line-height:1.15;
+  min-height:26px;
 }
 .home-confidence-value{
-  font-size:18px;
+  font-size:17px;
   font-weight:800;
   line-height:1;
 }
 .home-confidence-caption{
   color:var(--muted);
-  font-size:10px;
+  font-size:9px;
   letter-spacing:0.06em;
   text-transform:uppercase;
 }
@@ -1917,9 +1918,9 @@ button{cursor:pointer}
   }
 
   .home-match-card{
-    grid-template-columns:minmax(0,1fr) 1px 104px 12px;
-    gap:12px;
-    min-height:124px;
+    grid-template-columns:minmax(0,1fr) 1px 100px 10px;
+    gap:10px;
+    min-height:114px;
   }
 
   .home-card-divider{
