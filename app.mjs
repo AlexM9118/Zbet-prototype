@@ -2,7 +2,7 @@ import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } fr
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "56";
+const APP_VERSION = "57";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -496,13 +496,17 @@ function renderHome() {
     ? topMatches.map(({ match, analysis }) => `
       <button class="home-match-card" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">
         <div class="home-card-left">
-          <div class="home-logos-stack">
-            ${badgeMarkup(match.home, "home-logo")}
-            ${badgeMarkup(match.away, "home-logo away")}
+          <div class="home-team-stack">
+            <div class="home-team-row">
+              ${badgeMarkup(match.home, "home-logo")}
+              <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
+            </div>
+            <div class="home-team-row">
+              ${badgeMarkup(match.away, "home-logo away")}
+              <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
+            </div>
           </div>
           <div class="home-match-copy">
-            <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
-            <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
             <div class="home-meta-row">${escapeHtml(match.tournamentName)}</div>
             <div class="home-kickoff-row">${escapeHtml(fmtClock(match.startTime))}</div>
           </div>
@@ -692,13 +696,14 @@ function renderProfile() {
 
 function buildOverviewMarkup(match, analysis) {
   const primary = analysis?.primary;
+  const roundedConfidence = primary ? `${Math.round(Number(primary.probability || 0) * 100)}%` : "—";
   return `
     <article class="analysis-verdict-card">
       <div class="analysis-verdict-header">
         <div>
           <div class="section-kicker">AI Verdict</div>
           <h3>${escapeHtml(primary?.label || "No signal")}</h3>
-          <div class="analysis-confidence-line">${escapeHtml(primary ? `${pct01(primary.probability)} ${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}` : "—")}</div>
+          <div class="analysis-confidence-line">${escapeHtml(primary ? `${roundedConfidence} ${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}` : "—")}</div>
         </div>
         ${buildConfidenceRing(primary?.probability)}
       </div>
@@ -727,7 +732,7 @@ function buildPredictionsMarkup(analysis) {
         ${finalRows.map((row) => `
           <div class="prediction-tile">
             <div class="prediction-tile-title">${escapeHtml(row.label)}</div>
-            <div class="prediction-tile-value">${escapeHtml(pct01(row.probability))}</div>
+            <div class="prediction-tile-value">${escapeHtml(`${Math.round(Number(row.probability || 0) * 100)}%`)}</div>
             <div class="prediction-tile-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
             ${buildConfidenceBar(row.probability)}
           </div>
@@ -831,7 +836,7 @@ function renderDetail() {
   const historyEntry = getHistEntry(match.fixtureId);
 
   el("detailLeagueLabel").textContent = match.tournamentName;
-  el("detailKickoffLabel").textContent = fmtTime(match.startTime);
+  el("detailKickoffLabel").textContent = fmtClock(match.startTime);
   el("detailPseudoScore").textContent = analysis?.primary?.label || buildPseudoScore(analysis);
   el("detailMatchDayLabel").textContent = state.language === "ro" ? "Azi" : "Today";
   setBadgeVisual("detailHomeBadge", match.home);
