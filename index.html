@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#05070A" />
+  <title>AIRO</title>
+  <link rel="manifest" href="./manifest.webmanifest?v=59" />
+  <link rel="apple-touch-icon" href="./icons/airo-touch-icon-180.png?v=59" />
+  <link rel="stylesheet" href="./styles.css?v=59" />
+</head>
+<body>
+  <div id="updateBanner" class="update-banner" hidden>
+    <div>
+      <div class="update-banner-title">A new version is ready</div>
+      <div class="update-banner-copy">Reload the app to switch to the latest AIRO interface.</div>
+    </div>
+    <button id="applyUpdateBtn" class="cta-button" type="button">Reload</button>
+  </div>
+
+  <div class="app-shell">
+    <div class="device-frame">
+      <header id="appTopbar" class="topbar">
+        <div class="brand-cluster">
+          <button id="backFromDetailBtn" class="icon-button back-button" type="button" hidden aria-label="Back">‹</button>
+          <div class="brand-copy">
+            <div class="brand-name">AIRO</div>
+            <button id="adminModeTrigger" class="brand-tagline" type="button">See Football Smarter</button>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <button id="searchToggleBtn" class="icon-button" type="button" aria-label="Search">
+            <span class="search-icon" aria-hidden="true"></span>
+          </button>
+        </div>
+      </header>
+
+      <section id="searchDrawer" class="search-drawer" hidden>
+        <label class="search-field">
+          <span class="search-label">Find a team or match</span>
+          <input id="searchInput" type="text" placeholder="Manchester City, FCSB, Arsenal…" autocomplete="off" />
+        </label>
+        <div id="searchResults" class="search-results" hidden></div>
+      </section>
+
+      <main class="screen-shell">
+        <section id="homeScreen" class="screen-view">
+          <div class="screen-headline home-headline">
+            <div>
+              <div id="homeGreeting" class="headline-title"><span class="title-line">Here are today’s top</span><span class="title-line">AI match insights</span></div>
+              <div id="homeSubtitle" class="headline-subtitle">TODAY • MAY 16</div>
+            </div>
+          </div>
+
+          <div id="homeFeedList" class="airo-home-list"></div>
+        </section>
+
+        <section id="matchesScreen" class="screen-view" hidden>
+          <div class="screen-headline">
+            <div>
+              <div class="headline-title">Matches</div>
+              <div id="matchesSubtitle" class="headline-subtitle">Intelligent match explorer.</div>
+            </div>
+          </div>
+
+          <div class="matches-toolbar">
+            <button id="matchesSearchBtn" class="toolbar-pill" type="button">Search</button>
+            <button id="matchesFilterBtn" class="toolbar-pill" type="button">Filters</button>
+            <button id="matchesCalendarBtn" class="toolbar-pill" type="button">Calendar</button>
+          </div>
+
+          <div class="segmented-tabs">
+            <button class="segmented-tab is-active" data-filter="latest" type="button">Today</button>
+            <button class="segmented-tab" data-filter="tomorrow" type="button">Tomorrow</button>
+            <button class="segmented-tab" data-filter="weekend" type="button">Weekend</button>
+            <button class="segmented-tab" data-filter="featured" type="button">Top Picks</button>
+          </div>
+
+          <div id="snapshotNotice" class="snapshot-banner"></div>
+          <div id="matchesList" class="match-list"></div>
+        </section>
+
+        <section id="aiScreen" class="screen-view" hidden>
+          <div class="screen-headline">
+            <div>
+              <div class="headline-title">AIRO AI</div>
+              <div class="headline-subtitle">Ask sharper questions. Read the match deeper.</div>
+            </div>
+          </div>
+
+          <section class="assistant-card">
+            <div class="assistant-thread">
+              <div class="assistant-bubble ai">
+                Based on current form, injuries and match context, I’ve found the strongest signals in today’s board.
+              </div>
+              <div id="aiSuggestedAnswer" class="assistant-bubble user">
+                Who has the strongest edge today?
+              </div>
+              <div id="aiGeneratedAnswer" class="assistant-bubble ai">
+                Loading the best match insight…
+              </div>
+            </div>
+
+            <div id="aiPromptGrid" class="prompt-grid"></div>
+
+            <div class="assistant-input">
+              <span>Ask anything…</span>
+              <button id="useFeaturedPromptBtn" class="mini-send" type="button">↗</button>
+            </div>
+          </section>
+        </section>
+
+        <section id="profileScreen" class="screen-view" hidden>
+          <div class="screen-headline">
+            <div>
+              <div class="headline-title">Profile</div>
+              <div class="headline-subtitle">Settings, reports and your intelligence layer.</div>
+            </div>
+          </div>
+
+          <section class="profile-card">
+            <div class="profile-row">
+              <div class="avatar-mark">A</div>
+              <div>
+                <div class="profile-name">Alex</div>
+                <div class="profile-handle">@alex_airo</div>
+              </div>
+            </div>
+
+            <div class="settings-list">
+              <button class="settings-item" type="button"><span>Account</span><strong>›</strong></button>
+              <button class="settings-item" type="button"><span>Data & Privacy</span><strong>›</strong></button>
+              <button class="settings-item" type="button"><span>Support</span><strong>›</strong></button>
+            </div>
+          </section>
+
+          <section class="profile-card">
+            <div class="section-header">
+              <div class="section-title">App refresh</div>
+              <div class="section-chip">Manual</div>
+            </div>
+            <button id="profileRefreshBtn" class="cta-button full-width" type="button">Refresh app</button>
+          </section>
+
+          <section class="profile-card">
+            <div class="section-header">
+              <div class="section-title">Language</div>
+              <div class="section-chip">Settings</div>
+            </div>
+            <div class="language-switcher">
+              <button id="langRoBtn" class="language-pill" type="button">🇷🇴 Romana</button>
+              <button id="langEnBtn" class="language-pill" type="button">🇺🇸 English</button>
+            </div>
+          </section>
+
+          <section class="profile-card">
+            <div class="section-header">
+              <div class="section-title">Saved matches</div>
+              <div class="section-chip">Favorites</div>
+            </div>
+            <div id="profileFavoritesList" class="favorites-stack"></div>
+          </section>
+        </section>
+
+        <section id="detailScreen" class="screen-view analysis-screen" hidden>
+          <div class="screen-headline analysis-header">
+            <button id="analysisBackBtn" class="icon-button back-button" type="button" aria-label="Back to Home">‹</button>
+            <div class="headline-title analysis-title">Match Analysis</div>
+            <button id="detailFavoriteBtn" class="icon-button small-icon" type="button" aria-label="Favorite">☆</button>
+          </div>
+
+          <div class="analysis-hero">
+            <div class="analysis-hero-topline">
+              <div id="detailLeagueLabel" class="detail-league">Premier League</div>
+              <div id="detailMatchDayLabel" class="matchday-label">Today</div>
+            </div>
+            <div class="analysis-hero-main">
+              <div class="analysis-side">
+                <div id="detailHomeBadge" class="crest-mark large-crest">KY</div>
+                <span id="detailHomeName">Home</span>
+              </div>
+              <div class="analysis-center">
+                <strong id="detailKickoffLabel" class="analysis-kickoff">18:30</strong>
+                <div id="detailPseudoScore" class="analysis-prediction">Over 2.5 Goals</div>
+              </div>
+              <div class="analysis-side">
+                <div id="detailAwayBadge" class="crest-mark large-crest">AI</div>
+                <span id="detailAwayName">Away</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-tabs">
+            <button class="detail-tab is-active" data-detail-tab="overview" type="button">Overview</button>
+            <button class="detail-tab" data-detail-tab="predictions" type="button">Predictions</button>
+            <button class="detail-tab" data-detail-tab="form" type="button">Team Form</button>
+            <button class="detail-tab" data-detail-tab="h2h" type="button">H2H</button>
+            <button class="detail-tab" data-detail-tab="stats" type="button">Stats</button>
+          </div>
+
+          <div id="detailOverviewTab" class="detail-panel"></div>
+          <div id="detailPredictionsTab" class="detail-panel" hidden></div>
+          <div id="detailFormTab" class="detail-panel" hidden></div>
+          <div id="detailH2HTab" class="detail-panel" hidden></div>
+          <div id="detailStatsTab" class="detail-panel" hidden></div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav">
+        <button id="navHomeBtn" class="bottom-nav-item is-active" type="button">
+          <span class="bottom-nav-icon nav-icon nav-icon-home" aria-hidden="true"></span>
+          <span>Home</span>
+        </button>
+        <button id="navMatchesBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon nav-icon nav-icon-matches" aria-hidden="true"></span>
+          <span>Matches</span>
+        </button>
+        <button id="navAnalysisBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon nav-icon nav-icon-analysis" aria-hidden="true"></span>
+          <span>Analysis</span>
+        </button>
+        <button id="navAiBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon nav-icon nav-icon-chat" aria-hidden="true"></span>
+          <span>AI Chat</span>
+        </button>
+        <button id="navProfileBtn" class="bottom-nav-item" type="button">
+          <span class="bottom-nav-icon nav-icon nav-icon-profile" aria-hidden="true"></span>
+          <span>Profile</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <div id="modelSummaryModal" class="modal-shell" hidden>
+    <div id="modelSummaryBackdrop" class="modal-backdrop"></div>
+    <section class="modal-card" role="dialog" aria-modal="true">
+      <button id="closeModelSummaryBtn" class="modal-close" type="button" aria-label="Close">×</button>
+      <div class="modal-kicker">Recent model pulse</div>
+      <h2>AIRO signal rate <span id="modelRateChip">—</span></h2>
+      <p id="modelPopoverCopy" class="modal-copy">Short performance summary.</p>
+      <div id="backtestSummary" class="backtest-summary"></div>
+      <div id="backtestMarkets" class="backtest-markets"></div>
+    </section>
+  </div>
+
+  <div id="adminWatchdogModal" class="modal-shell" hidden>
+    <div id="adminWatchdogBackdrop" class="modal-backdrop"></div>
+    <section class="modal-card" role="dialog" aria-modal="true">
+      <button id="closeAdminWatchdogBtn" class="modal-close" type="button" aria-label="Close">×</button>
+      <div id="adminWatchdogPanel" class="admin-watchdog"></div>
+      <button id="disableAdminModeBtn" class="secondary-button full-width" type="button">Disable admin mode</button>
+    </section>
+  </div>
+
+  <script type="module" src="./app.mjs?v=44"></script>
+</body>
+</html>
