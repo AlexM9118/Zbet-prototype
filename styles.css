@@ -1564,13 +1564,23 @@ button{cursor:pointer}
   display:grid;
   grid-template-columns:repeat(5, minmax(0,1fr));
   gap:0;
-  height:calc(50px + env(safe-area-inset-bottom));
-  min-height:calc(50px + env(safe-area-inset-bottom));
-  padding:0 8px 0;
+  height:calc(60px + env(safe-area-inset-bottom));
+  min-height:calc(60px + env(safe-area-inset-bottom));
+  padding:6px 8px calc(env(safe-area-inset-bottom) + 4px);
   border-top:1px solid rgba(255,255,255,0.04);
   background:#05070A;
   box-shadow:none;
-  align-items:end;
+  align-items:start;
+}
+.bottom-nav::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:env(safe-area-inset-bottom);
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  pointer-events:none;
 }
 .bottom-nav-item{
   border:none;
@@ -1579,10 +1589,10 @@ button{cursor:pointer}
   display:flex;
   flex-direction:column;
   align-items:center;
-  justify-content:flex-end;
-  gap:2px;
+  justify-content:flex-start;
+  gap:3px;
   height:50px;
-  padding:0 2px 4px;
+  padding:4px 2px 0;
   border-radius:0;
   font-size:11px;
   font-weight:500;
@@ -1609,15 +1619,37 @@ button{cursor:pointer}
   transform:none;
   border-radius:2px 2px 0 0;
 }
-.bottom-nav-item.is-active .nav-icon-matches::before,
-.bottom-nav-item.is-active .nav-icon-analysis::before,
-.bottom-nav-item.is-active .nav-icon-chat::before,
-.bottom-nav-item.is-active .nav-icon-profile::before{
+.bottom-nav-item.is-active .nav-icon-matches::before{
   background:currentColor;
 }
-.bottom-nav-item.is-active .nav-icon-profile::after{
+.bottom-nav-item.is-active .nav-icon-matches::after{
+  background:#05070A;
+  left:6px;
+  right:6px;
+  top:9px;
+  height:1.8px;
+  box-shadow:0 -4px 0 #05070A, 0 4px 0 #05070A;
+}
+.bottom-nav-item.is-active .nav-icon-analysis::before{
+  background:currentColor;
+}
+.bottom-nav-item.is-active .nav-icon-analysis::after{
+  border-left:1.8px solid #05070A;
+  border-bottom:1.8px solid #05070A;
+}
+.bottom-nav-item.is-active .nav-icon-chat::before{
+  background:currentColor;
+}
+.bottom-nav-item.is-active .nav-icon-chat::after{
+  border-left:1.8px solid #05070A;
+  border-bottom:1.8px solid #05070A;
+}
+.bottom-nav-item.is-active .nav-icon-profile::before{
   background:currentColor;
   border:none;
+}
+.bottom-nav-item.is-active .nav-icon-profile::after{
+  background:linear-gradient(#05070A 0 0) center 1px/7px 3px no-repeat, currentColor;
   left:4px;
   right:4px;
   bottom:2px;
@@ -1910,17 +1942,17 @@ button{cursor:pointer}
 
   .bottom-nav{
     gap:0;
-    height:calc(46px + env(safe-area-inset-bottom));
-    min-height:calc(46px + env(safe-area-inset-bottom));
-    padding:0 8px 0;
+    height:calc(58px + env(safe-area-inset-bottom));
+    min-height:calc(58px + env(safe-area-inset-bottom));
+    padding:4px 8px calc(env(safe-area-inset-bottom) + 2px);
     border-radius:0;
   }
 
   .bottom-nav-item{
-    height:46px;
-    min-height:46px;
-    padding:0 2px 2px;
-    gap:1px;
+    height:44px;
+    min-height:44px;
+    padding:3px 2px 0;
+    gap:2px;
     font-size:10px;
   }
 

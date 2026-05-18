@@ -2,7 +2,7 @@ import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } fr
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "53";
+const APP_VERSION = "54";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
