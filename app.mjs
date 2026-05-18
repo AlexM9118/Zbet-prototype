@@ -2,7 +2,7 @@ import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } fr
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "55";
+const APP_VERSION = "56";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -24,7 +24,7 @@ const COPY = {
     filterToday: "Today",
     filterTomorrow: "Tomorrow",
     filterWeekend: "Weekend",
-    filterAi: "Top Picks",
+    filterAi: "All",
     aiTitle: "AIRO AI",
     aiSubtitle: "Ask sharper questions. Read the match deeper.",
     online: "Online",
@@ -75,7 +75,7 @@ const COPY = {
     filterToday: "Azi",
     filterTomorrow: "Maine",
     filterWeekend: "Weekend",
-    filterAi: "Top Picks",
+    filterAi: "Toate",
     aiTitle: "AIRO AI",
     aiSubtitle: "Pune intrebari mai bune. Citeste meciul mai profund.",
     online: "Online",
@@ -390,7 +390,7 @@ function getVisibleMatches() {
     const targets = new Set(ordered.slice(0, 4));
     matches = matches.filter((match) => targets.has(String(match.day || "")));
   } else if (state.matchFilter === "featured") {
-    matches = getTopMatches(16).map((item) => item.match);
+    matches = [...state.matches];
   }
   if (state.selectedLeague) {
     matches = matches.filter((match) => String(match.tournamentId) === String(state.selectedLeague));
@@ -533,6 +533,7 @@ function renderHome() {
 
 function renderMatches() {
   el("snapshotNotice").textContent = getSnapshotNotice();
+  el("snapshotNotice").hidden = !state.adminMode;
   document.querySelectorAll("[data-filter]").forEach((button) => {
     button.classList.toggle("is-active", button.getAttribute("data-filter") === state.matchFilter);
     if (button.getAttribute("data-filter") === "latest") button.textContent = t("filterToday");
@@ -546,20 +547,22 @@ function renderMatches() {
   list.innerHTML = items.length
     ? items.map((match) => {
       const analysis = getAnalysis(match);
-      const confidence = analysis?.primary ? pct01(analysis.primary.probability) : "—";
+      const confidence = analysis?.primary ? `${Math.round(Number(analysis.primary.probability || 0) * 100)}%` : "—";
       return `
         <button class="match-card" type="button" data-open-match="${escapeHtml(String(match.fixtureId))}">
           <div class="match-card-main">
             <div class="match-card-left">
-              <div class="match-logos-pair">
-                ${badgeMarkup(match.home, "match-logo")}
-                ${badgeMarkup(match.away, "match-logo")}
-              </div>
               <div class="match-row-teams">
-                <div class="match-team-line">${escapeHtml(displayTeamName(match.home))}</div>
-                <div class="match-team-line">${escapeHtml(displayTeamName(match.away))}</div>
+                <div class="match-team-row">
+                  ${badgeMarkup(match.home, "match-logo")}
+                  <div class="match-team-line">${escapeHtml(displayTeamName(match.home))}</div>
+                </div>
+                <div class="match-team-row">
+                  ${badgeMarkup(match.away, "match-logo")}
+                  <div class="match-team-line">${escapeHtml(displayTeamName(match.away))}</div>
+                </div>
                 <div class="match-meta">${escapeHtml(match.tournamentName)}</div>
-                <div class="match-row-time">${escapeHtml(fmtTime(match.startTime))}</div>
+                <div class="match-row-time">${escapeHtml(fmtClock(match.startTime))}</div>
               </div>
             </div>
             <div class="match-card-right">

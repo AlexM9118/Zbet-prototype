@@ -723,10 +723,10 @@ button{cursor:pointer}
   flex:0 0 auto;
   border:none;
   border-radius:14px;
-  padding:10px 13px;
+  padding:9px 12px;
   background:rgba(255,255,255,0.04);
   color:var(--muted);
-  font-size:12px;
+  font-size:11px;
   font-weight:800;
 }
 .segmented-tab.is-active,
@@ -738,23 +738,24 @@ button{cursor:pointer}
 .matches-toolbar{
   display:grid;
   grid-template-columns:repeat(3, minmax(0,1fr));
-  gap:10px;
+  gap:8px;
 }
 .toolbar-pill{
   border:none;
   border-radius:16px;
-  padding:12px 10px;
+  padding:10px 10px;
   background:rgba(255,255,255,0.04);
   color:var(--text);
-  font-size:12px;
+  font-size:11px;
   font-weight:800;
 }
 
 .snapshot-banner{
-  padding:12px 14px;
+  padding:10px 12px;
   color:var(--muted);
-  font-size:12px;
-  line-height:1.55;
+  font-size:11px;
+  line-height:1.45;
+  opacity:0.82;
 }
 .state-card{
   padding:16px;
@@ -804,53 +805,47 @@ button{cursor:pointer}
   text-align:left;
   border:none;
   color:var(--text);
-  padding:16px 18px;
+  padding:14px 16px;
   border-radius:24px;
   background:#0b1420;
   border:1px solid rgba(255,255,255,0.05);
 }
 .match-card-main{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 126px;
-  gap:14px;
+  grid-template-columns:minmax(0,1fr) 116px;
+  gap:12px;
   align-items:center;
 }
 .match-card-left{
-  display:grid;
-  grid-template-columns:auto minmax(0,1fr);
-  gap:10px;
-  align-items:center;
-}
-.match-logos-pair{
-  display:grid;
-  gap:8px;
+  min-width:0;
 }
 .match-logo{
-  width:30px;
-  height:30px;
+  width:28px;
+  height:28px;
   border-radius:50%;
   font-size:10px;
 }
 .match-card-right{
   display:grid;
   justify-items:start;
-  gap:6px;
+  gap:4px;
 }
 .match-prediction-label{
   color:var(--green);
-  font-size:12px;
+  font-size:11px;
   font-weight:700;
   text-align:left;
+  min-height:24px;
 }
 .match-confidence-value{
-  font-size:18px;
+  font-size:17px;
   font-weight:800;
   line-height:1;
 }
 .match-team-line{
-  font-size:14px;
+  font-size:13px;
   font-weight:700;
-  line-height:1.2;
+  line-height:1.16;
 }
 .mini-crest{
   width:34px;
@@ -868,9 +863,15 @@ button{cursor:pointer}
   display:grid;
   gap:3px;
 }
+.match-team-row{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+}
 .match-row-time{
   color:#d3dae4;
-  font-size:12px;
+  font-size:11px;
 }
 .match-tags{
   display:flex;
