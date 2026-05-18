@@ -2,7 +2,7 @@ import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } fr
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "57";
+const APP_VERSION = "58";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -496,6 +496,10 @@ function renderHome() {
     ? topMatches.map(({ match, analysis }) => `
       <button class="home-match-card" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">
         <div class="home-card-left">
+          <div class="home-card-meta">
+            <div class="home-league-label">${escapeHtml(match.tournamentName)}</div>
+            <div class="home-kickoff-row">${escapeHtml(fmtClock(match.startTime))}</div>
+          </div>
           <div class="home-team-stack">
             <div class="home-team-row">
               ${badgeMarkup(match.home, "home-logo")}
@@ -505,10 +509,6 @@ function renderHome() {
               ${badgeMarkup(match.away, "home-logo away")}
               <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
             </div>
-          </div>
-          <div class="home-match-copy">
-            <div class="home-meta-row">${escapeHtml(match.tournamentName)}</div>
-            <div class="home-kickoff-row">${escapeHtml(fmtClock(match.startTime))}</div>
           </div>
         </div>
         <div class="home-card-divider"></div>
@@ -556,6 +556,10 @@ function renderMatches() {
         <button class="match-card" type="button" data-open-match="${escapeHtml(String(match.fixtureId))}">
           <div class="match-card-main">
             <div class="match-card-left">
+              <div class="match-card-meta-row">
+                <div class="match-meta">${escapeHtml(match.tournamentName)}</div>
+                <div class="match-row-time">${escapeHtml(fmtClock(match.startTime))}</div>
+              </div>
               <div class="match-row-teams">
                 <div class="match-team-row">
                   ${badgeMarkup(match.home, "match-logo")}
@@ -565,8 +569,6 @@ function renderMatches() {
                   ${badgeMarkup(match.away, "match-logo")}
                   <div class="match-team-line">${escapeHtml(displayTeamName(match.away))}</div>
                 </div>
-                <div class="match-meta">${escapeHtml(match.tournamentName)}</div>
-                <div class="match-row-time">${escapeHtml(fmtClock(match.startTime))}</div>
               </div>
             </div>
             <div class="match-card-right">
