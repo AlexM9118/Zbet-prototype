@@ -2,7 +2,7 @@ import { getJson, fmtDayLong, fmtTime, fmtClock, fmtOdds, pct01, escapeHtml } fr
 import { buildMatchAnalysis } from "./js/zbet-engine.mjs";
 import { getTeamLogo } from "./js/team-logos.mjs";
 
-const APP_VERSION = "58";
+const APP_VERSION = "59";
 const UPDATE_BANNER_DISMISSED_KEY = "airo-update-dismissed";
 const ADMIN_MODE_STORAGE_KEY = "airo-admin-mode";
 const LANGUAGE_STORAGE_KEY = "airo-language";
@@ -312,6 +312,27 @@ function getFeaturedMatch() {
   return best?.match || candidates[0] || state.matches[0] || null;
 }
 
+function groupItemsByTournament(items, getMatch = (item) => item) {
+  const groups = [];
+  const map = new Map();
+  for (const item of items) {
+    const match = getMatch(item);
+    if (!match) continue;
+    const key = String(match.tournamentId || match.tournamentName || "");
+    if (!map.has(key)) {
+      const group = {
+        key,
+        title: match.tournamentName || (state.language === "ro" ? "Competitie" : "Competition"),
+        items: []
+      };
+      map.set(key, group);
+      groups.push(group);
+    }
+    map.get(key).items.push(item);
+  }
+  return groups;
+}
+
 function ensureSelectedFixture() {
   if (state.selectedFixtureId) return;
   const featured = getFeaturedMatch();
@@ -492,34 +513,39 @@ function renderHome() {
     : getSnapshotNotice();
 
   const feed = el("homeFeedList");
-  feed.innerHTML = topMatches.length
-    ? topMatches.map(({ match, analysis }) => `
-      <button class="home-match-card" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">
-        <div class="home-card-left">
-          <div class="home-card-meta">
-            <div class="home-league-label">${escapeHtml(match.tournamentName)}</div>
-            <div class="home-kickoff-row">${escapeHtml(fmtClock(match.startTime))}</div>
-          </div>
-          <div class="home-team-stack">
-            <div class="home-team-row">
-              ${badgeMarkup(match.home, "home-logo")}
-              <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
-            </div>
-            <div class="home-team-row">
-              ${badgeMarkup(match.away, "home-logo away")}
-              <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
-            </div>
-          </div>
+  const groupedTopMatches = groupItemsByTournament(topMatches, (item) => item.match);
+  feed.innerHTML = groupedTopMatches.length
+    ? groupedTopMatches.map((group) => `
+      <section class="league-group">
+        <div class="league-group-title">${escapeHtml(group.title)}</div>
+        <div class="league-group-list">
+          ${group.items.map(({ match, analysis }) => `
+            <button class="home-match-card" type="button" data-open-analysis="${escapeHtml(String(match.fixtureId))}">
+              <div class="home-card-left">
+                <div class="home-time-rail">${escapeHtml(fmtClock(match.startTime))}</div>
+                <div class="home-team-stack">
+                  <div class="home-team-row">
+                    ${badgeMarkup(match.home, "home-logo")}
+                    <div class="home-team-name">${escapeHtml(displayTeamName(match.home))}</div>
+                  </div>
+                  <div class="home-team-row">
+                    ${badgeMarkup(match.away, "home-logo away")}
+                    <div class="home-team-name">${escapeHtml(displayTeamName(match.away))}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="home-card-divider"></div>
+              <div class="home-card-right">
+                <div class="home-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
+                <div class="home-confidence-value">${escapeHtml(analysis?.primary ? `${Math.round(Number(analysis.primary.probability || 0) * 100)}%` : "—")}</div>
+                <div class="home-confidence-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
+                ${buildConfidenceBar(analysis?.primary?.probability)}
+              </div>
+              <span class="home-card-chevron" aria-hidden="true">›</span>
+            </button>
+          `).join("")}
         </div>
-        <div class="home-card-divider"></div>
-        <div class="home-card-right">
-          <div class="home-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
-          <div class="home-confidence-value">${escapeHtml(analysis?.primary ? `${Math.round(Number(analysis.primary.probability || 0) * 100)}%` : "—")}</div>
-          <div class="home-confidence-caption">${state.language === "ro" ? "CONFIDENTA" : "CONFIDENCE"}</div>
-          ${buildConfidenceBar(analysis?.primary?.probability)}
-        </div>
-        <span class="home-card-chevron" aria-hidden="true">›</span>
-      </button>
+      </section>
     `).join("")
     : renderStateCard(
       state.language === "ro" ? "Nu exista meciuri curate pentru cardurile AIRO." : "There are no clean matches for the AIRO cards.",
@@ -548,39 +574,44 @@ function renderMatches() {
 
   const items = getVisibleMatches();
   const list = el("matchesList");
-  list.innerHTML = items.length
-    ? items.map((match) => {
-      const analysis = getAnalysis(match);
-      const confidence = analysis?.primary ? `${Math.round(Number(analysis.primary.probability || 0) * 100)}%` : "—";
-      return `
-        <button class="match-card" type="button" data-open-match="${escapeHtml(String(match.fixtureId))}">
-          <div class="match-card-main">
-            <div class="match-card-left">
-              <div class="match-card-meta-row">
-                <div class="match-meta">${escapeHtml(match.tournamentName)}</div>
-                <div class="match-row-time">${escapeHtml(fmtClock(match.startTime))}</div>
-              </div>
-              <div class="match-row-teams">
-                <div class="match-team-row">
-                  ${badgeMarkup(match.home, "match-logo")}
-                  <div class="match-team-line">${escapeHtml(displayTeamName(match.home))}</div>
+  const groupedMatches = groupItemsByTournament(items);
+  list.innerHTML = groupedMatches.length
+    ? groupedMatches.map((group) => `
+      <section class="league-group">
+        <div class="league-group-title">${escapeHtml(group.title)}</div>
+        <div class="league-group-list">
+          ${group.items.map((match) => {
+            const analysis = getAnalysis(match);
+            const confidence = analysis?.primary ? `${Math.round(Number(analysis.primary.probability || 0) * 100)}%` : "—";
+            return `
+              <button class="match-card" type="button" data-open-match="${escapeHtml(String(match.fixtureId))}">
+                <div class="match-card-main">
+                  <div class="match-card-left">
+                    <div class="match-time-rail">${escapeHtml(fmtClock(match.startTime))}</div>
+                    <div class="match-row-teams">
+                      <div class="match-team-row">
+                        ${badgeMarkup(match.home, "match-logo")}
+                        <div class="match-team-line">${escapeHtml(displayTeamName(match.home))}</div>
+                      </div>
+                      <div class="match-team-row">
+                        ${badgeMarkup(match.away, "match-logo")}
+                        <div class="match-team-line">${escapeHtml(displayTeamName(match.away))}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="match-card-right">
+                    <div class="match-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
+                    <div class="match-confidence-value">${escapeHtml(confidence)}</div>
+                    ${buildConfidenceBar(analysis?.primary?.probability)}
+                    <span class="match-card-chevron" aria-hidden="true">›</span>
+                  </div>
                 </div>
-                <div class="match-team-row">
-                  ${badgeMarkup(match.away, "match-logo")}
-                  <div class="match-team-line">${escapeHtml(displayTeamName(match.away))}</div>
-                </div>
-              </div>
-            </div>
-            <div class="match-card-right">
-              <div class="match-prediction-label">${escapeHtml(analysis?.primary?.label || "No signal")}</div>
-              <div class="match-confidence-value">${escapeHtml(confidence)}</div>
-              ${buildConfidenceBar(analysis?.primary?.probability)}
-              <span class="match-card-chevron" aria-hidden="true">›</span>
-            </div>
-          </div>
-        </button>
-      `;
-    }).join("")
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </section>
+    `).join("")
     : renderStateCard(
         state.language === "ro" ? "Nu exista meciuri pentru filtrul curent." : "No matches for the current filter.",
         state.language === "ro" ? "Schimba ziua, liga sau tabul activ." : "Try another day, league or active tab."
